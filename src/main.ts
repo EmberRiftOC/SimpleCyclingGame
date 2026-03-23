@@ -6,12 +6,18 @@ const CANVAS_HEIGHT = 600
 const LANES = 3
 const LANE_HEIGHT = CANVAS_HEIGHT / LANES
 const PLAYER_START_X = 150
-const SCROLL_SPEED = 3
+const BASE_SCROLL_SPEED = 3
+const MIN_SPEED = 1.5
+const MAX_SPEED = 6
+const RACE_DISTANCE = 10000
 const MAX_ENERGY = 100
-const ENERGY_DRAIN_SOLO = 0.1
-const ENERGY_DRAIN_BOOST = 0.5
-const ENERGY_REGEN_DRAFT = 0.3
-const BOOST_SPEED = 6
+const ENERGY_DRAIN_BASE = 0.08
+const ENERGY_DRAIN_FAST = 0.3
+const ENERGY_REGEN_DRAFT = 0.4
+const ENERGY_REGEN_RECOVERY = 0.2
+const BOOST_SPEED_MULTIPLIER = 1.8
+const EXHAUSTED_SPEED = 0.8
+const RECOVERY_TIME = 5000 // 5 seconds in ms
 
 // Game state
 interface Cyclist {
@@ -37,14 +43,14 @@ let player: Cyclist = {
   x: PLAYER_START_X,
   y: LANE_HEIGHT * 1 + LANE_HEIGHT / 2,
   lane: 1,
-  speed: 0,
+  speed: BASE_SCROLL_SPEED,
   color: '#00ff41',
   isBoosting: false
 }
 
 let aiCyclists: Cyclist[] = [
-  { x: 200, y: LANE_HEIGHT * 0 + LANE_HEIGHT / 2, lane: 0, speed: SCROLL_SPEED, color: '#ff3366', isBoosting: false },
-  { x: 180, y: LANE_HEIGHT * 2 + LANE_HEIGHT / 2, lane: 2, speed: SCROLL_SPEED, color: '#3366ff', isBoosting: false }
+  { x: 200, y: LANE_HEIGHT * 0 + LANE_HEIGHT / 2, lane: 0, speed: BASE_SCROLL_SPEED, color: '#ff3366', isBoosting: false },
+  { x: 180, y: LANE_HEIGHT * 2 + LANE_HEIGHT / 2, lane: 2, speed: BASE_SCROLL_SPEED, color: '#3366ff', isBoosting: false }
 ]
 
 let obstacles: Obstacle[] = []
@@ -52,7 +58,10 @@ let primes: Prime[] = []
 let energy = MAX_ENERGY
 let score = 0
 let distance = 0
+let targetSpeed = BASE_SCROLL_SPEED
 let keys: { [key: string]: boolean } = {}
+let exhaustedSince: number | null = null
+let gameFinished = false
 
 // Initialize
 const app = document.querySelector<HTMLDivElement>('#app')!
@@ -65,9 +74,18 @@ app.innerHTML = `
       </div>
       <div class="stats">
         <span>Energy: <span id="energyText">100</span></span>
+        <span>Speed: <span id="speedText">3.0</span>x</span>
         <span>Score: <span id="scoreText">0</span></span>
-        <span>Distance: <span id="distanceText">0</span>m</span>
+        <span>Distance: <span id="distanceText">0</span>/<span id="totalDistance">${RACE_DISTANCE}</span>m</span>
       </div>
+      <div class="controls-hint">
+        ↑↓ Change Lane | ←→ Speed | Space: Boost
+      </div>
+    </div>
+    <div id="finishScreen" class="finish-screen hidden">
+      <h1>Race Complete!</h1>
+      <p class="final-score">Final Score: <span id="finalScore">0</span></p>
+      <p class="final-distance">Distance: <span id="finalDistance">0</span>m</p>
     </div>
   </div>
 `
@@ -77,6 +95,8 @@ const ctx = canvas.getContext('2d')!
 
 // Input handling
 document.addEventListener('keydown', (e) => {
+  if (gameFinished) return
+  
   keys[e.key] = true
   
   if ((e.key === 'ArrowUp' || e.key === 'w') && player.lane > 0 && energy > 5) {
@@ -97,7 +117,7 @@ document.addEventListener('keyup', (e) => {
 
 // Spawn obstacles
 function spawnObstacle() {
-  if (Math.random() < 0.02) {
+  if (Math.random() < 0.015) {
     obstacles.push({
       x: CANVAS_WIDTH,
       lane: Math.floor(Math.random() * LANES)
@@ -107,7 +127,7 @@ function spawnObstacle() {
 
 // Spawn primes
 function spawnPrime() {
-  if (primes.length < 5 && Math.random() < 0.001) {
+  if (primes.length < 5 && Math.random() < 0.0008) {
     primes.push({
       x: CANVAS_WIDTH + 200,
       crossed: false
@@ -127,21 +147,62 @@ function isDrafting(): boolean {
 
 // Update game state
 function update() {
-  distance += SCROLL_SPEED
+  if (gameFinished) return
+  
+  // Handle speed adjustments with arrow keys
+  if (keys['ArrowLeft']) {
+    targetSpeed = Math.max(MIN_SPEED, targetSpeed - 0.05)
+  }
+  if (keys['ArrowRight']) {
+    targetSpeed = Math.min(MAX_SPEED, targetSpeed + 0.05)
+  }
+  
+  // Smooth speed transition
+  player.speed += (targetSpeed - player.speed) * 0.1
   
   // Boost mechanic
   player.isBoosting = keys[' '] && energy > 0
-  const currentSpeed = player.isBoosting ? BOOST_SPEED : SCROLL_SPEED
+  let currentSpeed = player.speed
+  if (player.isBoosting) {
+    currentSpeed *= BOOST_SPEED_MULTIPLIER
+  }
+  
+  // Exhaustion mechanic
+  const now = Date.now()
+  if (energy <= 0) {
+    currentSpeed = EXHAUSTED_SPEED
+    if (exhaustedSince === null) {
+      exhaustedSince = now
+    }
+  } else {
+    exhaustedSince = null
+  }
   
   // Energy management
-  if (player.isBoosting) {
-    energy -= ENERGY_DRAIN_BOOST
+  if (energy <= 0) {
+    // In recovery mode after 5 seconds
+    if (exhaustedSince && now - exhaustedSince > RECOVERY_TIME) {
+      energy = Math.min(MAX_ENERGY, energy + ENERGY_REGEN_RECOVERY)
+    }
+  } else if (player.isBoosting) {
+    energy -= ENERGY_DRAIN_FAST
   } else if (isDrafting()) {
     energy = Math.min(MAX_ENERGY, energy + ENERGY_REGEN_DRAFT)
   } else {
-    energy -= ENERGY_DRAIN_SOLO
+    // Energy drain based on speed
+    const speedFactor = (player.speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)
+    energy -= ENERGY_DRAIN_BASE + (speedFactor * ENERGY_DRAIN_FAST)
   }
   energy = Math.max(0, energy)
+  
+  distance += currentSpeed
+  
+  // Check for race finish
+  if (distance >= RACE_DISTANCE) {
+    gameFinished = true
+    showFinishScreen()
+    return
+  }
   
   // Move obstacles
   obstacles = obstacles.filter(obs => {
@@ -178,6 +239,14 @@ function update() {
   spawnPrime()
 }
 
+// Show finish screen
+function showFinishScreen() {
+  const finishScreen = document.getElementById('finishScreen')!
+  document.getElementById('finalScore')!.textContent = score.toString()
+  document.getElementById('finalDistance')!.textContent = Math.floor(distance).toString()
+  finishScreen.classList.remove('hidden')
+}
+
 // Draw everything
 function draw() {
   // Clear with dark background
@@ -204,6 +273,28 @@ function draw() {
     ctx.moveTo(x, 0)
     ctx.lineTo(x, CANVAS_HEIGHT)
     ctx.stroke()
+  }
+  
+  // Draw finish line if close
+  const distanceToFinish = RACE_DISTANCE - distance
+  if (distanceToFinish < CANVAS_WIDTH) {
+    const finishX = CANVAS_WIDTH - distanceToFinish
+    ctx.fillStyle = '#ffffff'
+    ctx.globalAlpha = 0.2
+    ctx.fillRect(finishX, 0, 20, CANVAS_HEIGHT)
+    ctx.globalAlpha = 1
+    ctx.strokeStyle = '#ffffff'
+    ctx.lineWidth = 3
+    ctx.setLineDash([10, 10])
+    for (let y = 0; y < CANVAS_HEIGHT; y += 40) {
+      ctx.strokeRect(finishX, y, 20, 20)
+    }
+    ctx.setLineDash([])
+    
+    ctx.fillStyle = '#ffffff'
+    ctx.font = 'bold 24px monospace'
+    ctx.textAlign = 'center'
+    ctx.fillText('FINISH', finishX + 10, 30)
   }
   
   // Draw primes
@@ -259,12 +350,26 @@ function draw() {
     ctx.setLineDash([])
   }
   
+  // Draw exhausted indicator
+  if (energy <= 0) {
+    ctx.fillStyle = '#ff0066'
+    ctx.font = 'bold 16px monospace'
+    ctx.textAlign = 'center'
+    const recoveryTimeLeft = exhaustedSince ? Math.max(0, RECOVERY_TIME - (Date.now() - exhaustedSince)) / 1000 : 0
+    if (recoveryTimeLeft > 0) {
+      ctx.fillText(`EXHAUSTED - Recovery in ${recoveryTimeLeft.toFixed(1)}s`, CANVAS_WIDTH / 2, 50)
+    } else {
+      ctx.fillText('EXHAUSTED - Recovering...', CANVAS_WIDTH / 2, 50)
+    }
+  }
+  
   // Update HUD
   const energyFill = document.getElementById('energyFill')!
   energyFill.style.width = `${energy}%`
   energyFill.style.background = energy > 50 ? '#00ff41' : energy > 25 ? '#ffaa00' : '#ff0066'
   
   document.getElementById('energyText')!.textContent = Math.floor(energy).toString()
+  document.getElementById('speedText')!.textContent = player.speed.toFixed(1)
   document.getElementById('scoreText')!.textContent = score.toString()
   document.getElementById('distanceText')!.textContent = Math.floor(distance).toString()
 }
@@ -302,5 +407,5 @@ function gameLoop() {
 }
 
 console.log('Simple Cycling Game - MVP')
-console.log('Controls: Arrow Keys / W/S to change lanes, Space to boost')
+console.log('Controls: ↑↓/WS: Change lanes | ←→: Speed | Space: Boost')
 gameLoop()
