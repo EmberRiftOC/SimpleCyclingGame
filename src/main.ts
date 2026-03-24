@@ -295,13 +295,21 @@ function update() {
     // Just became exhausted
     isExhausted = true
     exhaustedStartTime = now
+    console.log('🚨 EXHAUSTED - Starting 5 second timer', { energy, frame: player.distance })
   }
   
   if (isExhausted && exhaustedStartTime && now - exhaustedStartTime >= RECOVERY_TIME) {
     // Recovery complete
+    console.log('✅ RECOVERY TRIGGERED', { 
+      energyBefore: energy, 
+      isExhausted, 
+      timeSinceExhaustion: (now - exhaustedStartTime) / 1000,
+      frame: player.distance 
+    })
     energy = RECOVERY_ENERGY
     isExhausted = false
     exhaustedStartTime = null
+    console.log('✅ RECOVERY COMPLETE', { energyAfter: energy, isExhausted })
   }
   
   // Apply speed penalty if exhausted
@@ -310,6 +318,7 @@ function update() {
   }
   
   // Energy management (runs every frame)
+  const energyBeforeDrain = energy
   if (player.isBoosting && energy > 0) {
     energy -= ENERGY_DRAIN_FAST
   } else if (isDrafting() && energy < MAX_ENERGY) {
@@ -317,9 +326,21 @@ function update() {
   } else if (energy > 0) {
     // Energy drain based on speed
     const speedFactor = (player.speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)
-    energy -= ENERGY_DRAIN_BASE + (speedFactor * ENERGY_DRAIN_FAST)
+    const drain = ENERGY_DRAIN_BASE + (speedFactor * ENERGY_DRAIN_FAST)
+    energy -= drain
   }
   energy = Math.max(0, energy)
+  
+  // Log if energy just hit 0 after recovery
+  if (energyBeforeDrain > 40 && energy <= 0) {
+    console.error('⚠️ ENERGY DRAINED TO 0 IN ONE FRAME!', {
+      energyBefore: energyBeforeDrain,
+      energyAfter: energy,
+      isBoosting: player.isBoosting,
+      isDrafting: isDrafting(),
+      speed: player.speed
+    })
+  }
   
   player.distance += currentSpeed
   
