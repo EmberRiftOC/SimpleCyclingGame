@@ -14,10 +14,10 @@ const MAX_ENERGY = 100
 const ENERGY_DRAIN_BASE = 0.08
 const ENERGY_DRAIN_FAST = 0.3
 const ENERGY_REGEN_DRAFT = 0.4
-const ENERGY_REGEN_RECOVERY = 0.2
 const BOOST_SPEED_MULTIPLIER = 1.8
 const EXHAUSTED_SPEED = 0.8
 const RECOVERY_TIME = 5000 // 5 seconds in ms
+const RECOVERY_ENERGY = 50 // Energy restored after recovery
 
 // Game state
 interface Cyclist {
@@ -27,6 +27,9 @@ interface Cyclist {
   speed: number
   color: string
   isBoosting: boolean
+  name: string
+  distance: number
+  score: number
 }
 
 interface Obstacle {
@@ -36,7 +39,8 @@ interface Obstacle {
 
 interface Prime {
   x: number
-  crossed: boolean
+  crossed: Set<string>
+  distance: number
 }
 
 let player: Cyclist = {
@@ -45,29 +49,56 @@ let player: Cyclist = {
   lane: 1,
   speed: BASE_SCROLL_SPEED,
   color: '#00ff41',
-  isBoosting: false
+  isBoosting: false,
+  name: 'You',
+  distance: 0,
+  score: 0
 }
 
 let aiCyclists: Cyclist[] = [
-  { x: 200, y: LANE_HEIGHT * 0 + LANE_HEIGHT / 2, lane: 0, speed: BASE_SCROLL_SPEED, color: '#ff3366', isBoosting: false },
-  { x: 180, y: LANE_HEIGHT * 2 + LANE_HEIGHT / 2, lane: 2, speed: BASE_SCROLL_SPEED, color: '#3366ff', isBoosting: false }
+  { x: 200, y: LANE_HEIGHT * 0 + LANE_HEIGHT / 2, lane: 0, speed: BASE_SCROLL_SPEED, color: '#ff3366', isBoosting: false, name: 'Red', distance: 50, score: 0 },
+  { x: 180, y: LANE_HEIGHT * 2 + LANE_HEIGHT / 2, lane: 2, speed: BASE_SCROLL_SPEED, color: '#3366ff', isBoosting: false, name: 'Blue', distance: -30, score: 0 }
 ]
 
 let obstacles: Obstacle[] = []
 let primes: Prime[] = []
 let energy = MAX_ENERGY
-let score = 0
-let distance = 0
 let targetSpeed = BASE_SCROLL_SPEED
 let keys: { [key: string]: boolean } = {}
-let exhaustedSince: number | null = null
+let isExhausted = false
+let exhaustedStartTime: number | null = null
 let gameFinished = false
+let finishLinePassed = false
+
+// Touch controls
+let touchStartX = 0
+let touchStartY = 0
+let isTouching = false
+let touchDetected = false
+let lastTouchTime = 0
+
+// Detect mobile
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+
+// Adjust layout for mobile portrait
+if (isMobile) {
+  document.body.classList.add('mobile-portrait')
+}
 
 // Initialize
 const app = document.querySelector<HTMLDivElement>('#app')!
 app.innerHTML = `
   <div class="game-container">
     <canvas id="gameCanvas" width="${CANVAS_WIDTH}" height="${CANVAS_HEIGHT}"></canvas>
+    <div id="speedSlider" class="speed-slider hidden">
+      <div class="slider-track">
+        <div class="slider-thumb" id="sliderThumb"></div>
+      </div>
+      <div class="slider-label">Speed: <span id="sliderSpeedText">3.0</span>x</div>
+    </div>
+    <div class="minimap" id="minimap">
+      <canvas id="minimapCanvas" width="760" height="40"></canvas>
+    </div>
     <div class="hud">
       <div class="energy-bar">
         <div class="energy-fill" id="energyFill"></div>
@@ -75,25 +106,36 @@ app.innerHTML = `
       <div class="stats">
         <span>Energy: <span id="energyText">100</span></span>
         <span>Speed: <span id="speedText">3.0</span>x</span>
-        <span>Score: <span id="scoreText">0</span></span>
         <span>Distance: <span id="distanceText">0</span>/<span id="totalDistance">${RACE_DISTANCE}</span>m</span>
       </div>
-      <div class="controls-hint">
+      <div class="scoreboard">
+        <div class="score-item"><span class="score-name" style="color: #00ff41">You:</span> <span id="scoreYou">0</span></div>
+        <div class="score-item"><span class="score-name" style="color: #ff3366">Red:</span> <span id="scoreRed">0</span></div>
+        <div class="score-item"><span class="score-name" style="color: #3366ff">Blue:</span> <span id="scoreBlue">0</span></div>
+      </div>
+      <div class="controls-hint" id="controlsHint">
         ↑↓ Change Lane | ←→ Speed | Space: Boost
       </div>
     </div>
     <div id="finishScreen" class="finish-screen hidden">
       <h1>Race Complete!</h1>
-      <p class="final-score">Final Score: <span id="finalScore">0</span></p>
-      <p class="final-distance">Distance: <span id="finalDistance">0</span>m</p>
+      <div class="final-scores">
+        <p><span style="color: #00ff41">You:</span> <span id="finalScoreYou">0</span> pts</p>
+        <p><span style="color: #ff3366">Red:</span> <span id="finalScoreRed">0</span> pts</p>
+        <p><span style="color: #3366ff">Blue:</span> <span id="finalScoreBlue">0</span> pts</p>
+      </div>
     </div>
   </div>
 `
 
 const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement
 const ctx = canvas.getContext('2d')!
+const minimapCanvas = document.getElementById('minimapCanvas') as HTMLCanvasElement
+const minimapCtx = minimapCanvas.getContext('2d')!
+const speedSlider = document.getElementById('speedSlider')!
+const sliderThumb = document.getElementById('sliderThumb')!
 
-// Input handling
+// Keyboard input handling
 document.addEventListener('keydown', (e) => {
   if (gameFinished) return
   
@@ -115,6 +157,85 @@ document.addEventListener('keyup', (e) => {
   keys[e.key] = false
 })
 
+// Touch input handling
+canvas.addEventListener('touchstart', (e) => {
+  if (gameFinished) return
+  e.preventDefault()
+  
+  const touch = e.touches[0]
+  touchStartX = touch.clientX
+  touchStartY = touch.clientY
+  isTouching = true
+  lastTouchTime = Date.now()
+  
+  // Show speed slider on first touch
+  if (!touchDetected) {
+    touchDetected = true
+    speedSlider.classList.remove('hidden')
+    document.getElementById('controlsHint')!.textContent = 'Swipe ↑↓ Lanes | Drag ←→ Speed | Tap: Boost'
+  }
+})
+
+canvas.addEventListener('touchmove', (e) => {
+  if (gameFinished || !isTouching) return
+  e.preventDefault()
+  
+  const touch = e.touches[0]
+  const deltaX = touch.clientX - touchStartX
+  const deltaY = touch.clientY - touchStartY
+  
+  // Prioritize vertical swipes for lane changes
+  if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 30) {
+    if (deltaY < 0 && player.lane > 0 && energy > 5) {
+      // Swipe up
+      player.lane--
+      player.y = LANE_HEIGHT * player.lane + LANE_HEIGHT / 2
+      energy -= 5
+      touchStartY = touch.clientY // Reset so it doesn't trigger multiple times
+    } else if (deltaY > 0 && player.lane < LANES - 1 && energy > 5) {
+      // Swipe down
+      player.lane++
+      player.y = LANE_HEIGHT * player.lane + LANE_HEIGHT / 2
+      energy -= 5
+      touchStartY = touch.clientY
+    }
+  }
+  
+  // Horizontal drag for speed control
+  if (Math.abs(deltaX) > 5) {
+    const speedAdjust = deltaX * 0.01
+    targetSpeed = Math.max(MIN_SPEED, Math.min(MAX_SPEED, targetSpeed + speedAdjust))
+    touchStartX = touch.clientX // Reset for continuous drag
+  }
+})
+
+canvas.addEventListener('touchend', (e) => {
+  if (gameFinished) return
+  e.preventDefault()
+  
+  const touchDuration = Date.now() - lastTouchTime
+  const touch = e.changedTouches[0]
+  const deltaX = Math.abs(touch.clientX - touchStartX)
+  const deltaY = Math.abs(touch.clientY - touchStartY)
+  
+  // Tap detected (short duration, minimal movement)
+  if (touchDuration < 200 && deltaX < 20 && deltaY < 20 && energy > 0) {
+    player.isBoosting = true
+    setTimeout(() => {
+      player.isBoosting = false
+    }, 500) // Boost for half a second
+  }
+  
+  isTouching = false
+})
+
+// Update speed slider visual
+function updateSpeedSlider() {
+  const percentage = ((targetSpeed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)) * 100
+  sliderThumb.style.left = `${percentage}%`
+  document.getElementById('sliderSpeedText')!.textContent = targetSpeed.toFixed(1)
+}
+
 // Spawn obstacles
 function spawnObstacle() {
   if (Math.random() < 0.015) {
@@ -130,7 +251,8 @@ function spawnPrime() {
   if (primes.length < 5 && Math.random() < 0.0008) {
     primes.push({
       x: CANVAS_WIDTH + 200,
-      crossed: false
+      crossed: new Set(),
+      distance: player.distance + CANVAS_WIDTH + 200
     })
   }
 }
@@ -160,48 +282,55 @@ function update() {
   // Smooth speed transition
   player.speed += (targetSpeed - player.speed) * 0.1
   
-  // Boost mechanic
-  player.isBoosting = keys[' '] && energy > 0
+  // Boost mechanic (keyboard or touch)
+  player.isBoosting = (keys[' '] && energy > 0) || player.isBoosting
   let currentSpeed = player.speed
   if (player.isBoosting) {
     currentSpeed *= BOOST_SPEED_MULTIPLIER
   }
   
-  // Exhaustion mechanic
+  // Handle exhaustion recovery BEFORE energy management
   const now = Date.now()
-  if (energy <= 0) {
-    currentSpeed = EXHAUSTED_SPEED
-    if (exhaustedSince === null) {
-      exhaustedSince = now
-    }
-  } else {
-    exhaustedSince = null
+  if (energy <= 0 && !isExhausted) {
+    // Just became exhausted
+    isExhausted = true
+    exhaustedStartTime = now
   }
   
-  // Energy management
-  if (energy <= 0) {
-    // In recovery mode after 5 seconds
-    if (exhaustedSince && now - exhaustedSince > RECOVERY_TIME) {
-      energy = Math.min(MAX_ENERGY, energy + ENERGY_REGEN_RECOVERY)
-    }
-  } else if (player.isBoosting) {
+  if (isExhausted && exhaustedStartTime && now - exhaustedStartTime >= RECOVERY_TIME) {
+    // Recovery complete
+    energy = RECOVERY_ENERGY
+    isExhausted = false
+    exhaustedStartTime = null
+  }
+  
+  // Apply speed penalty if exhausted
+  if (isExhausted) {
+    currentSpeed = EXHAUSTED_SPEED
+  }
+  
+  // Energy management (runs every frame)
+  if (player.isBoosting && energy > 0) {
     energy -= ENERGY_DRAIN_FAST
-  } else if (isDrafting()) {
+  } else if (isDrafting() && energy < MAX_ENERGY) {
     energy = Math.min(MAX_ENERGY, energy + ENERGY_REGEN_DRAFT)
-  } else {
+  } else if (energy > 0) {
     // Energy drain based on speed
     const speedFactor = (player.speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)
     energy -= ENERGY_DRAIN_BASE + (speedFactor * ENERGY_DRAIN_FAST)
   }
   energy = Math.max(0, energy)
   
-  distance += currentSpeed
+  player.distance += currentSpeed
   
-  // Check for race finish
-  if (distance >= RACE_DISTANCE) {
-    gameFinished = true
-    showFinishScreen()
-    return
+  // Check for finish line crossing
+  if (player.distance >= RACE_DISTANCE && !finishLinePassed) {
+    finishLinePassed = true
+    player.score += 100 // First place bonus
+    setTimeout(() => {
+      gameFinished = true
+      showFinishScreen()
+    }, 1000)
   }
   
   // Move obstacles
@@ -221,30 +350,104 @@ function update() {
   primes.forEach(prime => {
     prime.x -= currentSpeed
     
-    // Check if player crossed prime
-    if (!prime.crossed && prime.x < player.x) {
-      prime.crossed = true
-      score += 20
+    // Check if player crossed prime (similar to finish line)
+    if (!prime.crossed.has('player') && player.distance >= prime.distance) {
+      prime.crossed.add('player')
+      const position = prime.crossed.size
+      if (position === 1) player.score += 20
+      else if (position === 2) player.score += 10
+      else if (position === 3) player.score += 5
     }
   })
   primes = primes.filter(p => p.x > -50)
   
-  // AI behavior (simple)
+  // AI behavior - maintain position relative to player
   aiCyclists.forEach(ai => {
-    ai.x -= currentSpeed - ai.speed
-    if (ai.x < -50) ai.x = CANVAS_WIDTH + 50
+    // AI maintains their initial offset distance from player
+    const targetDistance = player.distance + (ai.distance - player.distance)
+    ai.distance += ai.speed
+    
+    // Calculate screen position based on distance from player
+    const distanceFromPlayer = ai.distance - player.distance
+    ai.x = player.x + distanceFromPlayer
+    
+    // Simple AI lane changes to avoid obstacles
+    if (Math.random() < 0.01 && ai.x > 0 && ai.x < CANVAS_WIDTH) {
+      const newLane = Math.floor(Math.random() * LANES)
+      ai.lane = newLane
+      ai.y = LANE_HEIGHT * ai.lane + LANE_HEIGHT / 2
+    }
+    
+    // AI crosses primes
+    primes.forEach(prime => {
+      if (!prime.crossed.has(ai.name) && ai.distance >= prime.distance) {
+        prime.crossed.add(ai.name)
+        const position = prime.crossed.size
+        if (position === 1) ai.score += 20
+        else if (position === 2) ai.score += 10
+        else if (position === 3) ai.score += 5
+      }
+    })
+    
+    // AI crosses finish
+    if (ai.distance >= RACE_DISTANCE && ai.score < 100) {
+      if (player.score >= 100) {
+        ai.score += 50 // Second place
+      } else {
+        ai.score += 100 // Beat player
+      }
+    }
   })
   
   spawnObstacle()
   spawnPrime()
+  updateSpeedSlider()
 }
 
 // Show finish screen
 function showFinishScreen() {
   const finishScreen = document.getElementById('finishScreen')!
-  document.getElementById('finalScore')!.textContent = score.toString()
-  document.getElementById('finalDistance')!.textContent = Math.floor(distance).toString()
+  document.getElementById('finalScoreYou')!.textContent = player.score.toString()
+  document.getElementById('finalScoreRed')!.textContent = aiCyclists[0].score.toString()
+  document.getElementById('finalScoreBlue')!.textContent = aiCyclists[1].score.toString()
   finishScreen.classList.remove('hidden')
+}
+
+// Draw minimap
+function drawMinimap() {
+  const width = minimapCanvas.width
+  const height = minimapCanvas.height
+  
+  minimapCtx.fillStyle = '#0a0a0a'
+  minimapCtx.fillRect(0, 0, width, height)
+  
+  minimapCtx.strokeStyle = '#1a1a1a'
+  minimapCtx.strokeRect(0, 0, width, height)
+  
+  // Draw finish line on minimap
+  const finishPos = (RACE_DISTANCE / RACE_DISTANCE) * width
+  minimapCtx.fillStyle = '#ffffff'
+  minimapCtx.fillRect(finishPos - 2, 0, 4, height)
+  
+  // Draw primes on minimap
+  primes.forEach(prime => {
+    const primePos = (prime.distance / RACE_DISTANCE) * width
+    minimapCtx.fillStyle = '#ffff00'
+    minimapCtx.globalAlpha = 0.5
+    minimapCtx.fillRect(primePos - 3, 0, 6, height)
+    minimapCtx.globalAlpha = 1
+  })
+  
+  // Draw all cyclists
+  const playerPos = (player.distance / RACE_DISTANCE) * width
+  minimapCtx.fillStyle = player.color
+  minimapCtx.fillRect(playerPos - 4, height / 2 - 6, 8, 12)
+  
+  aiCyclists.forEach(ai => {
+    const aiPos = (ai.distance / RACE_DISTANCE) * width
+    minimapCtx.fillStyle = ai.color
+    minimapCtx.fillRect(aiPos - 4, height / 2 - 6, 8, 12)
+  })
 }
 
 // Draw everything
@@ -267,7 +470,7 @@ function draw() {
   // Draw grid effect (scrolling)
   ctx.strokeStyle = '#111111'
   ctx.lineWidth = 1
-  const gridOffset = (distance * 2) % 40
+  const gridOffset = (player.distance * 2) % 40
   for (let x = -gridOffset; x < CANVAS_WIDTH; x += 40) {
     ctx.beginPath()
     ctx.moveTo(x, 0)
@@ -275,46 +478,47 @@ function draw() {
     ctx.stroke()
   }
   
-  // Draw finish line if close
-  const distanceToFinish = RACE_DISTANCE - distance
-  if (distanceToFinish < CANVAS_WIDTH) {
-    const finishX = CANVAS_WIDTH - distanceToFinish
+  // Draw finish line (similar to primes)
+  const distanceToFinish = RACE_DISTANCE - player.distance
+  if (distanceToFinish < CANVAS_WIDTH && distanceToFinish > 0) {
+    const finishX = player.x + distanceToFinish
     ctx.fillStyle = '#ffffff'
-    ctx.globalAlpha = 0.2
-    ctx.fillRect(finishX, 0, 20, CANVAS_HEIGHT)
+    ctx.globalAlpha = 0.3
+    ctx.fillRect(finishX - 50, 0, 100, CANVAS_HEIGHT)
     ctx.globalAlpha = 1
+    
     ctx.strokeStyle = '#ffffff'
     ctx.lineWidth = 3
     ctx.setLineDash([10, 10])
-    for (let y = 0; y < CANVAS_HEIGHT; y += 40) {
-      ctx.strokeRect(finishX, y, 20, 20)
-    }
+    ctx.strokeRect(finishX - 50, 0, 100, CANVAS_HEIGHT)
     ctx.setLineDash([])
     
     ctx.fillStyle = '#ffffff'
     ctx.font = 'bold 24px monospace'
     ctx.textAlign = 'center'
-    ctx.fillText('FINISH', finishX + 10, 30)
+    ctx.fillText('FINISH', finishX, 30)
   }
   
   // Draw primes
   primes.forEach(prime => {
-    if (!prime.crossed) {
+    const primeX = player.x + (prime.distance - player.distance)
+    
+    if (primeX > -100 && primeX < CANVAS_WIDTH + 100 && !prime.crossed.has('player')) {
       ctx.fillStyle = '#ffff00'
       ctx.globalAlpha = 0.3
-      ctx.fillRect(prime.x - 50, 0, 100, CANVAS_HEIGHT)
+      ctx.fillRect(primeX - 50, 0, 100, CANVAS_HEIGHT)
       ctx.globalAlpha = 1
       
       ctx.strokeStyle = '#ffff00'
       ctx.lineWidth = 3
       ctx.setLineDash([10, 10])
-      ctx.strokeRect(prime.x - 50, 0, 100, CANVAS_HEIGHT)
+      ctx.strokeRect(primeX - 50, 0, 100, CANVAS_HEIGHT)
       ctx.setLineDash([])
       
       ctx.fillStyle = '#ffff00'
       ctx.font = 'bold 20px monospace'
       ctx.textAlign = 'center'
-      ctx.fillText('PRIME', prime.x, 30)
+      ctx.fillText('PRIME', primeX, 30)
     }
   })
   
@@ -328,9 +532,11 @@ function draw() {
     ctx.strokeRect(obs.x - 15, y - 15, 30, 30)
   })
   
-  // Draw AI cyclists
+  // Draw AI cyclists (only if on screen)
   aiCyclists.forEach(ai => {
-    drawCyclist(ai)
+    if (ai.x > -50 && ai.x < CANVAS_WIDTH + 50) {
+      drawCyclist(ai)
+    }
   })
   
   // Draw player (with glow if boosting)
@@ -351,16 +557,12 @@ function draw() {
   }
   
   // Draw exhausted indicator
-  if (energy <= 0) {
+  if (isExhausted && exhaustedStartTime !== null) {
     ctx.fillStyle = '#ff0066'
     ctx.font = 'bold 16px monospace'
     ctx.textAlign = 'center'
-    const recoveryTimeLeft = exhaustedSince ? Math.max(0, RECOVERY_TIME - (Date.now() - exhaustedSince)) / 1000 : 0
-    if (recoveryTimeLeft > 0) {
-      ctx.fillText(`EXHAUSTED - Recovery in ${recoveryTimeLeft.toFixed(1)}s`, CANVAS_WIDTH / 2, 50)
-    } else {
-      ctx.fillText('EXHAUSTED - Recovering...', CANVAS_WIDTH / 2, 50)
-    }
+    const recoveryTimeLeft = Math.max(0, RECOVERY_TIME - (Date.now() - exhaustedStartTime)) / 1000
+    ctx.fillText(`EXHAUSTED - Recovery in ${recoveryTimeLeft.toFixed(1)}s`, CANVAS_WIDTH / 2, 50)
   }
   
   // Update HUD
@@ -370,8 +572,15 @@ function draw() {
   
   document.getElementById('energyText')!.textContent = Math.floor(energy).toString()
   document.getElementById('speedText')!.textContent = player.speed.toFixed(1)
-  document.getElementById('scoreText')!.textContent = score.toString()
-  document.getElementById('distanceText')!.textContent = Math.floor(distance).toString()
+  document.getElementById('distanceText')!.textContent = Math.floor(player.distance).toString()
+  
+  // Update scores
+  document.getElementById('scoreYou')!.textContent = player.score.toString()
+  document.getElementById('scoreRed')!.textContent = aiCyclists[0].score.toString()
+  document.getElementById('scoreBlue')!.textContent = aiCyclists[1].score.toString()
+  
+  // Draw minimap
+  drawMinimap()
 }
 
 function drawCyclist(cyclist: Cyclist) {
@@ -408,4 +617,5 @@ function gameLoop() {
 
 console.log('Simple Cycling Game - MVP')
 console.log('Controls: ↑↓/WS: Change lanes | ←→: Speed | Space: Boost')
+console.log('Touch: Swipe ↑↓ Lanes | Drag ←→ Speed | Tap: Boost')
 gameLoop()

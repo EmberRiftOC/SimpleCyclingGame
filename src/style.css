@@ -15,6 +15,11 @@ body {
   overflow: hidden;
 }
 
+body.mobile-portrait {
+  align-items: flex-start;
+  padding-top: 20px;
+}
+
 #app {
   width: 100%;
   max-width: 800px;
@@ -26,13 +31,70 @@ body {
 
 #gameCanvas {
   display: block;
+  width: 100%;
+  height: auto;
   border: 2px solid #00ff41;
   box-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
   background: #0a0a0a;
+  touch-action: none; /* Prevent default touch behaviors */
+}
+
+.speed-slider {
+  margin-top: 10px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.9);
+  border: 2px solid #00ff41;
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+}
+
+.speed-slider.hidden {
+  display: none;
+}
+
+.slider-track {
+  position: relative;
+  width: 100%;
+  height: 30px;
+  background: #1a1a1a;
+  border: 2px solid #00ff41;
+  margin-bottom: 10px;
+}
+
+.slider-thumb {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 8px;
+  height: 100%;
+  background: #00ff41;
+  box-shadow: 0 0 10px #00ff41;
+  transition: left 0.1s ease-out;
+}
+
+.slider-label {
+  text-align: center;
+  font-size: 14px;
+  color: #00ff41;
+  text-transform: uppercase;
+}
+
+.minimap {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #00ff41;
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+}
+
+#minimapCanvas {
+  display: block;
+  width: 100%;
+  height: 40px;
+  border: 1px solid #00ff41;
 }
 
 .hud {
-  margin-top: 20px;
+  margin-top: 10px;
   padding: 15px;
   background: rgba(0, 0, 0, 0.8);
   border: 2px solid #00ff41;
@@ -63,10 +125,32 @@ body {
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 10px;
+  flex-wrap: wrap;
 }
 
 .stats span {
   color: #00ff41;
+}
+
+.scoreboard {
+  display: flex;
+  justify-content: space-around;
+  margin: 10px 0;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #00ff41;
+  flex-wrap: wrap;
+}
+
+.score-item {
+  font-size: 14px;
+  text-transform: uppercase;
+  margin: 5px 0;
+}
+
+.score-name {
+  font-weight: bold;
+  margin-right: 5px;
 }
 
 .controls-hint {
@@ -101,13 +185,38 @@ body {
   text-shadow: 0 0 10px rgba(0, 255, 65, 0.8);
 }
 
-.final-score {
-  font-size: 32px;
+.final-scores {
+  font-size: 24px;
   margin: 15px 0;
-  color: #ffff00;
 }
 
-.final-distance {
-  font-size: 20px;
-  color: #00ffff;
+.final-scores p {
+  margin: 10px 0;
+}
+
+/* Mobile portrait adjustments */
+@media (max-width: 768px) and (orientation: portrait) {
+  body.mobile-portrait #app {
+    max-width: 100vw;
+  }
+  
+  .finish-screen {
+    padding: 20px 30px;
+  }
+  
+  .finish-screen h1 {
+    font-size: 32px;
+  }
+  
+  .final-scores {
+    font-size: 18px;
+  }
+  
+  .stats {
+    font-size: 12px;
+  }
+  
+  .score-item {
+    font-size: 12px;
+  }
 }
