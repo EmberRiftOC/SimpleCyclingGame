@@ -4,7 +4,7 @@
 
 const raceConfig = {
   "distance": {
-    "meters": 10000,
+    "meters": 1000,
     "displayUnit": "meters"
   },
   "lanes": {
