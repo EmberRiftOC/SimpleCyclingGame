@@ -86,9 +86,8 @@ function getNextUnclaimedPrime(rider, gameState) {
 /**
  * Smooth speed adjustment (acceleration/braking)
  */
-export function adjustSpeed(currentSpeed, targetSpeed, deltaTime) {
-  const maxAcceleration = 2.0; // m/s per second
-  const maxChange = maxAcceleration * (deltaTime / 1000);
+export function adjustSpeed(currentSpeed, targetSpeed, deltaTime, acceleration = 2.0) {
+  const maxChange = acceleration * (deltaTime / 1000);
   
   const diff = targetSpeed - currentSpeed;
   

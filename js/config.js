@@ -28,6 +28,15 @@ const raceConfig = {
   "unitToggle": {
     "options": ["mph", "kph"],
     "default": "mph"
+  },
+  "playerControls": {
+    "maxSpeedMultiplier": 1.5,
+    "minSpeedMultiplier": 0.3,
+    "acceleration": 3.0
+  },
+  "viewport": {
+    "rangeBikeLengths": 15,
+    "playerPositionPercent": 0.4
   }
 };
 
@@ -101,6 +110,7 @@ const aiConfig = {
       "sprintSpeed": 1.3,
       "description": "Rides 10% faster than normal, sprints hard"
     },
+    "acceleration": 2.5,
     "primeStrategy": "always",
     "draftingPreference": "risky",
     "energyManagement": "poor",
@@ -114,6 +124,7 @@ const aiConfig = {
       "normalSpeed": 1.0,
       "sprintSpeed": 1.2
     },
+    "acceleration": 2.0,
     "primeStrategy": "opportunistic",
     "draftingPreference": "moderate",
     "energyManagement": "good",
@@ -128,6 +139,7 @@ const aiConfig = {
       "sprintSpeed": 1.1,
       "description": "Rides 10% slower, conserves energy"
     },
+    "acceleration": 1.5,
     "primeStrategy": "ignore",
     "draftingPreference": "safe",
     "energyManagement": "excellent",
@@ -142,10 +154,10 @@ const primeConfig = {
   "count": 3,
   "randomization": true,
   "spawnRules": {
-    "minDistanceFromStart": 1000,
-    "minDistanceFromFinish": 1000,
-    "minSpacing": 2000,
-    "unit": "meters"
+    "minDistanceFromStart": 0.1,  // 10% of race distance
+    "minDistanceFromFinish": 0.1, // 10% of race distance
+    "minSpacing": 0.2,             // 20% of race distance
+    "unit": "percent"
   },
   "points": {
     "first": 3,

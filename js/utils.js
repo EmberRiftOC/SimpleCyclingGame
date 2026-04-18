@@ -28,14 +28,19 @@ export function lerp(a, b, t) {
  */
 export function generatePrimeLocations(config, totalDistance) {
   const { count, spawnRules } = config;
-  const { minDistanceFromStart, minDistanceFromFinish, minSpacing } = spawnRules;
+  const { minDistanceFromStart, minDistanceFromFinish, minSpacing, unit } = spawnRules;
   
-  const availableStart = minDistanceFromStart;
-  const availableEnd = totalDistance - minDistanceFromFinish;
+  // Convert percentages to absolute distances if needed
+  const startBuffer = unit === 'percent' ? totalDistance * minDistanceFromStart : minDistanceFromStart;
+  const endBuffer = unit === 'percent' ? totalDistance * minDistanceFromFinish : minDistanceFromFinish;
+  const spacing = unit === 'percent' ? totalDistance * minSpacing : minSpacing;
+  
+  const availableStart = startBuffer;
+  const availableEnd = totalDistance - endBuffer;
   const availableRange = availableEnd - availableStart;
   
   // Check if there's enough space
-  const minRequiredSpace = (count - 1) * minSpacing;
+  const minRequiredSpace = (count - 1) * spacing;
   if (availableRange < minRequiredSpace) {
     throw new Error('Not enough space to place primes with given constraints');
   }
@@ -47,7 +52,7 @@ export function generatePrimeLocations(config, totalDistance) {
   for (let i = 0; i < count; i++) {
     const segmentStart = availableStart + segmentSize * (i + 1);
     const segmentEnd = availableStart + segmentSize * (i + 2);
-    const location = Math.floor(segmentStart + Math.random() * (segmentEnd - segmentStart - minSpacing));
+    const location = Math.floor(segmentStart + Math.random() * (segmentEnd - segmentStart - spacing));
     
     primes.push({
       location,

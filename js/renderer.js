@@ -104,9 +104,9 @@ function renderRiders(gameState, config) {
   if (!player) return;
   
   // Viewport configuration
-  const bikeLengthMeters = 1.8;
-  const viewportRange = 15 * bikeLengthMeters; // 15 bike lengths total
-  const playerViewportCenter = canvas.width * 0.4; // Player positioned at 40% from left
+  const bikeLengthMeters = config.drafting.bikeLengthInMeters;
+  const viewportRange = config.race.viewport.rangeBikeLengths * bikeLengthMeters;
+  const playerViewportCenter = canvas.width * config.race.viewport.playerPositionPercent;
   
   // Calculate visible range (meters)
   const viewStart = player.position - (playerViewportCenter / canvas.width) * viewportRange;

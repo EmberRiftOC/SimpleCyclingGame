@@ -61,7 +61,8 @@ export class RaceManager {
       // AI decision-making
       if (rider.type !== 'player') {
         const aiDecision = ai.updateAI(rider, this.gameState, this.config);
-        rider.speed = ai.adjustSpeed(rider.speed, aiDecision.speed, deltaTime);
+        const aiAcceleration = this.config.ai[rider.type].acceleration;
+        rider.speed = ai.adjustSpeed(rider.speed, aiDecision.speed, deltaTime, aiAcceleration);
       }
       
       // Find draft target
@@ -138,9 +139,9 @@ export class RaceManager {
     if (!player || player.finished) return;
     
     const normalSpeed = this.config.race.defaultSpeed.mps;
-    const maxSpeed = normalSpeed * 1.5;
-    const minSpeed = normalSpeed * 0.3;
-    const acceleration = 3.0; // m/s per second
+    const maxSpeed = normalSpeed * this.config.race.playerControls.maxSpeedMultiplier;
+    const minSpeed = normalSpeed * this.config.race.playerControls.minSpeedMultiplier;
+    const acceleration = this.config.race.playerControls.acceleration;
     
     // Smooth speed adjustment
     if (commands.speedChange === 'increase') {
