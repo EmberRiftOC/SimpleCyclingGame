@@ -5,8 +5,8 @@
 let inputState = {
   accelerate: false,
   brake: false,
-  laneChange: null, // 'up' | 'down' | null
-  speedChange: null // 'increase' | 'decrease' | null
+  laneChange: null, // 'up' | 'down' | null (one-shot, cleared after read)
+  speedChange: null // 'increase' | 'decrease' | null (continuous)
 };
 
 /**
@@ -26,6 +26,9 @@ export function removeKeyboardControls() {
 }
 
 function handleKeyDown(event) {
+  // Ignore key repeats (holding key down)
+  if (event.repeat) return;
+  
   switch (event.key) {
     case 'ArrowUp':
       inputState.laneChange = 'up';
@@ -50,7 +53,8 @@ function handleKeyUp(event) {
   switch (event.key) {
     case 'ArrowUp':
     case 'ArrowDown':
-      inputState.laneChange = null;
+      // Lane change is one-shot, cleared after processing
+      // No action needed on keyup
       break;
     case 'ArrowLeft':
     case 'ArrowRight':
@@ -68,10 +72,15 @@ export function setupTouchControls() {
 }
 
 /**
- * Get current input state
+ * Get current input state and clear one-shot events
  */
 export function getPlayerInput() {
-  return { ...inputState };
+  const input = { ...inputState };
+  
+  // Clear one-shot lane change after read
+  inputState.laneChange = null;
+  
+  return input;
 }
 
 /**
