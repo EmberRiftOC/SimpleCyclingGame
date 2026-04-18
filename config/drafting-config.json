@@ -1,0 +1,45 @@
+{
+  "draftZones": [
+    {
+      "minDistance": 0,
+      "maxDistance": 1,
+      "unit": "bikeLengths",
+      "energyMultiplier": 0.3,
+      "savingsPercent": 70,
+      "riskLevel": "high",
+      "description": "Optimal draft, high collision risk"
+    },
+    {
+      "minDistance": 1,
+      "maxDistance": 2,
+      "unit": "bikeLengths",
+      "energyMultiplier": 0.5,
+      "savingsPercent": 50,
+      "riskLevel": "medium"
+    },
+    {
+      "minDistance": 2,
+      "maxDistance": 3,
+      "unit": "bikeLengths",
+      "energyMultiplier": 0.7,
+      "savingsPercent": 30,
+      "riskLevel": "low"
+    },
+    {
+      "minDistance": 3,
+      "maxDistance": 999,
+      "unit": "bikeLengths",
+      "energyMultiplier": 1.0,
+      "savingsPercent": 0,
+      "riskLevel": "none",
+      "description": "No drafting benefit"
+    }
+  ],
+  "bikeLengthInMeters": 1.8,
+  "collisionThreshold": 0.3,
+  "collisionKnockback": {
+    "min": 4,
+    "max": 5,
+    "unit": "bikeLengths"
+  }
+}

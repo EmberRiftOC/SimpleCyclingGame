@@ -1,0 +1,28 @@
+{
+  "distance": {
+    "meters": 10000,
+    "displayUnit": "meters"
+  },
+  "lanes": {
+    "total": 5,
+    "playerStartLane": 3,
+    "widthMeters": 2
+  },
+  "riders": {
+    "total": 10,
+    "playerColor": "#FF3366",
+    "aiColors": {
+      "aggressive": "#FF6B35",
+      "balanced": "#4ECDC4",
+      "defensive": "#95E1D3"
+    }
+  },
+  "defaultSpeed": {
+    "mph": 25,
+    "mps": 11.176
+  },
+  "unitToggle": {
+    "options": ["mph", "kph"],
+    "default": "mph"
+  }
+}

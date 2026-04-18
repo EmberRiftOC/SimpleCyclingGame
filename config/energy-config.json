@@ -1,0 +1,16 @@
+{
+  "startingEnergy": 100,
+  "depletionFormula": {
+    "baseRate": 0.1,
+    "speedMultiplier": "exponential",
+    "exponent": 2.0
+  },
+  "zeroEnergyPenalty": {
+    "speedMultiplier": 0.5,
+    "description": "Player drops to 50% speed when energy = 0"
+  },
+  "energyBuffer": {
+    "normalPaceUsage": 90,
+    "description": "Normal pace should use ~90% energy over full race"
+  }
+}

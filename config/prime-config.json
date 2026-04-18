@@ -1,0 +1,25 @@
+{
+  "count": 3,
+  "randomization": true,
+  "spawnRules": {
+    "minDistanceFromStart": 1000,
+    "minDistanceFromFinish": 1000,
+    "minSpacing": 2000,
+    "unit": "meters"
+  },
+  "points": {
+    "first": 3,
+    "second": 2,
+    "third": 1
+  },
+  "finishPoints": {
+    "first": 15,
+    "second": 10,
+    "third": 6
+  },
+  "visualIndicator": {
+    "minimapColor": "#FFD700",
+    "advanceWarning": 50,
+    "unit": "meters"
+  }
+}

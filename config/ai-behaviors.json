@@ -1,0 +1,43 @@
+{
+  "aggressive": {
+    "pacing": {
+      "normalSpeed": 1.1,
+      "sprintSpeed": 1.3,
+      "description": "Rides 10% faster than normal, sprints hard"
+    },
+    "primeStrategy": "always",
+    "draftingPreference": "risky",
+    "energyManagement": "poor",
+    "visualIdentifier": {
+      "bikeColor": "#FF6B35",
+      "trailColor": "#FF0000"
+    }
+  },
+  "balanced": {
+    "pacing": {
+      "normalSpeed": 1.0,
+      "sprintSpeed": 1.2
+    },
+    "primeStrategy": "opportunistic",
+    "draftingPreference": "moderate",
+    "energyManagement": "good",
+    "visualIdentifier": {
+      "bikeColor": "#4ECDC4",
+      "trailColor": "#00FFFF"
+    }
+  },
+  "defensive": {
+    "pacing": {
+      "normalSpeed": 0.9,
+      "sprintSpeed": 1.1,
+      "description": "Rides 10% slower, conserves energy"
+    },
+    "primeStrategy": "ignore",
+    "draftingPreference": "safe",
+    "energyManagement": "excellent",
+    "visualIdentifier": {
+      "bikeColor": "#95E1D3",
+      "trailColor": "#00FF00"
+    }
+  }
+}
