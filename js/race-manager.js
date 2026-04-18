@@ -121,7 +121,7 @@ export class RaceManager {
       // Handle coasting after finish
       if (rider.coasting) {
         const bikeLengthMeters = this.config.drafting.bikeLengthInMeters;
-        const coastLimit = 7 * bikeLengthMeters;
+        const coastLimit = 4 * bikeLengthMeters;
         
         if (rider.coastDistance >= coastLimit) {
           rider.coasting = false;
