@@ -2,26 +2,25 @@
  * Configuration loader and manager
  */
 
-let configs = {};
+import raceConfig from '../config/race-config.json';
+import energyConfig from '../config/energy-config.json';
+import draftingConfig from '../config/drafting-config.json';
+import aiConfig from '../config/ai-behaviors.json';
+import primeConfig from '../config/prime-config.json';
+
+let configs = {
+  race: raceConfig,
+  energy: energyConfig,
+  drafting: draftingConfig,
+  ai: aiConfig,
+  prime: primeConfig
+};
 
 /**
- * Load all configuration files
+ * Load all configuration files (now just returns cached configs)
  */
 export async function loadConfigs() {
-  try {
-    const [race, energy, drafting, ai, prime] = await Promise.all([
-      fetch('config/race-config.json').then(r => r.json()),
-      fetch('config/energy-config.json').then(r => r.json()),
-      fetch('config/drafting-config.json').then(r => r.json()),
-      fetch('config/ai-behaviors.json').then(r => r.json()),
-      fetch('config/prime-config.json').then(r => r.json())
-    ]);
-    
-    configs = { race, energy, drafting, ai, prime };
-    return configs;
-  } catch (error) {
-    throw new Error(`Failed to load configs: ${error.message}`);
-  }
+  return configs;
 }
 
 /**
