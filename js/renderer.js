@@ -2,6 +2,8 @@
  * Rendering engine - draw game state to canvas layers
  */
 
+import { drawCyclist, getAnimationFrame } from './sprites.js';
+
 let canvases = {
   background: null,
   rider: null,
@@ -165,11 +167,13 @@ function renderRiders(gameState, config) {
       const x = posToScreenX(rider.position);
       const y = (rider.lane - 0.5) * laneHeight;
       
-      // Draw rider as circle (placeholder)
-      ctx.fillStyle = getRiderColor(rider, config);
-      ctx.beginPath();
-      ctx.arc(x, y, 15, 0, Math.PI * 2);
-      ctx.fill();
+      // Calculate animation frame based on energy drain rate
+      const animFrame = getAnimationFrame(rider.energyDrainRate || 0, gameState.time);
+      const isPlayer = rider.type === 'player';
+      const color = getRiderColor(rider, config);
+      
+      // Draw cyclist sprite
+      drawCyclist(ctx, x, y, color, animFrame, isPlayer);
       
       // Draw draft indicator if applicable
       renderDraftIndicator(ctx, rider, gameState, config, x, y);
