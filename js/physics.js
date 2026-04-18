@@ -8,8 +8,13 @@
 export function calculateEnergyDrain(rider, config, draftMultiplier, deltaTime) {
   if (rider.energy <= 0) return 0;
   
-  const { baseRate, exponent } = config.energy.depletionFormula;
+  const { baseRateReference, referenceDistance, exponent } = config.energy.depletionFormula;
   const normalSpeed = config.race.defaultSpeed.mps;
+  const raceDistance = config.race.distance.meters;
+  
+  // Scale base rate inversely with race distance
+  // Shorter races need faster drain to use same % of energy
+  const baseRate = baseRateReference * (referenceDistance / raceDistance);
   
   const speedRatio = rider.speed / normalSpeed;
   const drainRate = baseRate * Math.pow(speedRatio, exponent);

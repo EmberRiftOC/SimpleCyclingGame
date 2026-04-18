@@ -43,7 +43,8 @@ const raceConfig = {
 const energyConfig = {
   "startingEnergy": 100,
   "depletionFormula": {
-    "baseRate": 0.1,
+    "baseRateReference": 0.1,      // Base rate for 10km race
+    "referenceDistance": 10000,    // Reference distance in meters
     "speedMultiplier": "exponential",
     "exponent": 2.0
   },
