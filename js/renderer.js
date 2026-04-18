@@ -122,17 +122,20 @@ function renderRiders(gameState, config) {
   const finishPosition = gameState.race.totalDistance;
   if (finishPosition >= viewStart && finishPosition <= viewEnd) {
     const finishX = posToScreenX(finishPosition);
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#00ff41'; // Bright green
+    ctx.lineWidth = 5;
     ctx.setLineDash([]);
     ctx.beginPath();
     ctx.moveTo(finishX, 0);
     ctx.lineTo(finishX, canvas.height);
     ctx.stroke();
     
-    // "FINISH" text
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 24px monospace';
+    // "FINISH" text with outline
+    ctx.font = 'bold 28px monospace';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 3;
+    ctx.strokeText('FINISH', finishX + 10, canvas.height / 2);
+    ctx.fillStyle = '#00ff41';
     ctx.fillText('FINISH', finishX + 10, canvas.height / 2);
   }
   
@@ -208,10 +211,10 @@ function renderHUD(gameState, config) {
   renderEnergyBar(ctx, player, 20, 20);
   
   // Energy drain rate
-  renderEnergyDrainRate(ctx, player, 20, 65);
+  renderEnergyDrainRate(ctx, player, 20, 70);
   
   // Speed display
-  renderSpeed(ctx, player, config, 20, 100);
+  renderSpeed(ctx, player, config, 20, 105);
   
   // Distance remaining
   renderDistance(ctx, player, gameState, 20, 130);
