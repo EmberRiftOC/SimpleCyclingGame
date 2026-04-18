@@ -72,7 +72,8 @@ function gameLoop(currentTime) {
   const gameState = raceManager.getState();
   const configs = { 
     race: raceManager.config.race,
-    prime: raceManager.config.prime
+    prime: raceManager.config.prime,
+    drafting: raceManager.config.drafting
   };
   renderer.render(gameState, configs);
   
