@@ -56,7 +56,8 @@ export class RaceManager {
     
     // Update each rider
     for (const rider of this.gameState.riders) {
-      if (rider.finished) continue;
+      // Skip riders who have finished coasting
+      if (rider.finished && !rider.coasting) continue;
       
       // AI decision-making
       if (rider.type !== 'player') {
@@ -99,8 +100,10 @@ export class RaceManager {
       rider.position = physics.updatePosition(rider, deltaTime);
       
       // Check for finish
-      if (rider.position >= this.gameState.race.totalDistance) {
+      if (rider.position >= this.gameState.race.totalDistance && !rider.finished) {
         rider.finished = true;
+        rider.coasting = true;
+        rider.coastDistance = 0;
         rider.finishPosition = this.gameState.race.finishOrder.length + 1;
         this.gameState.race.finishOrder.push(rider.id);
         
@@ -112,6 +115,25 @@ export class RaceManager {
             this.config.prime.finishPoints.third
           ];
           rider.points += points[rider.finishPosition - 1];
+        }
+      }
+      
+      // Handle coasting after finish
+      if (rider.coasting) {
+        const bikeLengthMeters = this.config.drafting.bikeLengthInMeters;
+        const coastLimit = 7 * bikeLengthMeters;
+        
+        if (rider.coastDistance >= coastLimit) {
+          rider.coasting = false;
+          rider.speed = 0;
+        } else {
+          // Decelerate while coasting
+          const deceleration = 2.0; // m/s²
+          rider.speed = Math.max(0, rider.speed - deceleration * (deltaTime / 1000));
+          
+          // Track coast distance
+          const coastThisFrame = rider.speed * (deltaTime / 1000);
+          rider.coastDistance += coastThisFrame;
         }
       }
       

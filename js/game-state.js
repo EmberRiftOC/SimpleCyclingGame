@@ -35,7 +35,9 @@ export function createRider(id, type, lane, config) {
     crashed: false,
     points: 0,
     finished: false,
-    finishPosition: null
+    finishPosition: null,
+    coasting: false,
+    coastDistance: 0
   };
 }
 
