@@ -35,14 +35,13 @@ export class RaceManager {
     );
     this.gameState.riders.push(player);
     
-    // Create AI riders
-    const aiTypes = ['aggressive', 'balanced', 'defensive'];
-    const totalAI = this.config.race.riders.total - 1;
+    // Create AI riders (one per lane except player's lane)
+    const aiTypes = ['aggressive', 'balanced', 'defensive', 'balanced'];
+    const lanes = [1, 2, 4, 5]; // Skip lane 3 (player)
     
-    for (let i = 0; i < totalAI; i++) {
+    for (let i = 0; i < lanes.length; i++) {
       const type = aiTypes[i % aiTypes.length];
-      const lane = (i % this.config.race.lanes.total) + 1;
-      const aiRider = createRider(`ai-${i}`, type, lane, this.config);
+      const aiRider = createRider(`ai-${i}`, type, lanes[i], this.config);
       this.gameState.riders.push(aiRider);
     }
     
@@ -127,25 +126,26 @@ export class RaceManager {
   /**
    * Process player input commands
    */
-  processPlayerInput(commands) {
+  processPlayerInput(commands, deltaTime) {
     const player = this.gameState.riders.find(r => r.type === 'player');
     if (!player || player.finished) return;
     
     const normalSpeed = this.config.race.defaultSpeed.mps;
     const maxSpeed = normalSpeed * 1.5;
     const minSpeed = normalSpeed * 0.3;
+    const acceleration = 3.0; // m/s per second
     
-    // Accelerate/brake
-    if (commands.accelerate) {
-      player.speed = Math.min(maxSpeed, player.speed + 0.5);
+    // Smooth speed adjustment
+    if (commands.speedChange === 'increase') {
+      player.speed = Math.min(maxSpeed, player.speed + acceleration * (deltaTime / 1000));
     }
-    if (commands.brake) {
-      player.speed = Math.max(minSpeed, player.speed - 0.5);
+    if (commands.speedChange === 'decrease') {
+      player.speed = Math.max(minSpeed, player.speed - acceleration * (deltaTime / 1000));
     }
     
-    // Lane change
+    // Lane change (instant, triggered once per key press)
     if (commands.laneChange) {
-      const newLane = commands.laneChange === 'left' 
+      const newLane = commands.laneChange === 'up' 
         ? player.lane - 1 
         : player.lane + 1;
       

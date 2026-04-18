@@ -5,7 +5,8 @@
 let inputState = {
   accelerate: false,
   brake: false,
-  laneChange: null // 'left' | 'right' | null
+  laneChange: null, // 'up' | 'down' | null
+  speedChange: null // 'increase' | 'decrease' | null
 };
 
 /**
@@ -27,19 +28,19 @@ export function removeKeyboardControls() {
 function handleKeyDown(event) {
   switch (event.key) {
     case 'ArrowUp':
-      inputState.accelerate = true;
+      inputState.laneChange = 'up';
       event.preventDefault();
       break;
     case 'ArrowDown':
-      inputState.brake = true;
+      inputState.laneChange = 'down';
       event.preventDefault();
       break;
     case 'ArrowLeft':
-      inputState.laneChange = 'left';
+      inputState.speedChange = 'decrease';
       event.preventDefault();
       break;
     case 'ArrowRight':
-      inputState.laneChange = 'right';
+      inputState.speedChange = 'increase';
       event.preventDefault();
       break;
   }
@@ -48,14 +49,12 @@ function handleKeyDown(event) {
 function handleKeyUp(event) {
   switch (event.key) {
     case 'ArrowUp':
-      inputState.accelerate = false;
-      break;
     case 'ArrowDown':
-      inputState.brake = false;
+      inputState.laneChange = null;
       break;
     case 'ArrowLeft':
     case 'ArrowRight':
-      inputState.laneChange = null;
+      inputState.speedChange = null;
       break;
   }
 }
@@ -82,6 +81,7 @@ export function resetInputState() {
   inputState = {
     accelerate: false,
     brake: false,
-    laneChange: null
+    laneChange: null,
+    speedChange: null
   };
 }

@@ -63,7 +63,7 @@ function gameLoop(currentTime) {
   // Fixed-rate physics updates (deterministic)
   while (accumulator >= PHYSICS_STEP) {
     const playerCommands = input.getPlayerInput();
-    raceManager.processPlayerInput(playerCommands);
+    raceManager.processPlayerInput(playerCommands, PHYSICS_STEP);
     raceManager.updateRace(PHYSICS_STEP);
     accumulator -= PHYSICS_STEP;
   }

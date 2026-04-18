@@ -13,7 +13,7 @@ const raceConfig = {
     "widthMeters": 2
   },
   "riders": {
-    "total": 10,
+    "total": 5,
     "playerColor": "#FF3366",
     "aiColors": {
       "aggressive": "#FF6B35",
