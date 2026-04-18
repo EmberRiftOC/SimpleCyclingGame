@@ -73,6 +73,9 @@ export class RaceManager {
         draftMultiplier = physics.calculateDraftMultiplier(distance, this.config);
       }
       
+      // Track previous energy for drain rate calculation
+      const previousEnergy = rider.energy;
+      
       // Update energy
       rider.energy = physics.calculateEnergyDrain(
         rider,
@@ -80,6 +83,10 @@ export class RaceManager {
         draftMultiplier,
         deltaTime
       );
+      
+      // Calculate drain rate (% per second)
+      const energyLost = previousEnergy - rider.energy;
+      rider.energyDrainRate = (energyLost / (deltaTime / 1000));
       
       // Apply zero energy penalty
       if (rider.energy === 0) {
