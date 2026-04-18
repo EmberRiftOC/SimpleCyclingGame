@@ -69,7 +69,7 @@ function renderBackground(gameState, config) {
 }
 
 /**
- * Render all riders
+ * Render all riders with scrolling viewport
  */
 function renderRiders(gameState, config) {
   const ctx = contexts.rider;
@@ -78,21 +78,79 @@ function renderRiders(gameState, config) {
   // Clear
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
+  const player = gameState.riders.find(r => r.type === 'player');
+  if (!player) return;
+  
+  // Viewport configuration
+  const bikeLengthMeters = 1.8;
+  const viewportRange = 15 * bikeLengthMeters; // 15 bike lengths total
+  const playerViewportCenter = canvas.width * 0.4; // Player positioned at 40% from left
+  
+  // Calculate visible range (meters)
+  const viewStart = player.position - (playerViewportCenter / canvas.width) * viewportRange;
+  const viewEnd = viewStart + viewportRange;
+  
   const laneCount = config.race.lanes.total;
   const laneHeight = canvas.height / laneCount;
   
-  for (const rider of gameState.riders) {
-    const x = (rider.position / gameState.race.totalDistance) * canvas.width;
-    const y = (rider.lane - 0.5) * laneHeight;
-    
-    // Draw rider as circle (placeholder)
-    ctx.fillStyle = getRiderColor(rider, config);
+  // Helper to convert position to screen X
+  const posToScreenX = (position) => {
+    return ((position - viewStart) / viewportRange) * canvas.width;
+  };
+  
+  // Draw finish line if in view
+  const finishPosition = gameState.race.totalDistance;
+  if (finishPosition >= viewStart && finishPosition <= viewEnd) {
+    const finishX = posToScreenX(finishPosition);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([]);
     ctx.beginPath();
-    ctx.arc(x, y, 15, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.moveTo(finishX, 0);
+    ctx.lineTo(finishX, canvas.height);
+    ctx.stroke();
     
-    // Draw draft indicator if applicable
-    renderDraftIndicator(ctx, rider, gameState, config, x, y);
+    // "FINISH" text
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 24px monospace';
+    ctx.fillText('FINISH', finishX + 10, canvas.height / 2);
+  }
+  
+  // Draw primes if in view
+  for (const prime of gameState.race.primes) {
+    if (!prime.claimed && prime.location >= viewStart && prime.location <= viewEnd) {
+      const primeX = posToScreenX(prime.location);
+      ctx.strokeStyle = '#FFD700';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([10, 5]);
+      ctx.beginPath();
+      ctx.moveTo(primeX, 0);
+      ctx.lineTo(primeX, canvas.height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      
+      // "PRIME" text
+      ctx.fillStyle = '#FFD700';
+      ctx.font = 'bold 18px monospace';
+      ctx.fillText('PRIME', primeX + 10, 30);
+    }
+  }
+  
+  // Draw riders if in view
+  for (const rider of gameState.riders) {
+    if (rider.position >= viewStart && rider.position <= viewEnd) {
+      const x = posToScreenX(rider.position);
+      const y = (rider.lane - 0.5) * laneHeight;
+      
+      // Draw rider as circle (placeholder)
+      ctx.fillStyle = getRiderColor(rider, config);
+      ctx.beginPath();
+      ctx.arc(x, y, 15, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Draw draft indicator if applicable
+      renderDraftIndicator(ctx, rider, gameState, config, x, y);
+    }
   }
 }
 
