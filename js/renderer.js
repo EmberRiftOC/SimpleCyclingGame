@@ -211,23 +211,35 @@ function renderHUD(gameState, config) {
   const player = gameState.riders.find(r => r.type === 'player');
   if (!player) return;
   
-  // Energy bar
-  renderEnergyBar(ctx, player, 20, 20);
+  // HUD element spacing
+  const hudX = 20;
+  const hudStartY = 20;
+  const lineSpacing = 30;
   
-  // Energy drain rate
-  renderEnergyDrainRate(ctx, player, 20, 70);
+  let currentY = hudStartY;
+  
+  // Energy bar (takes 2 lines worth of space)
+  renderEnergyBar(ctx, player, hudX, currentY);
+  currentY += 60; // Energy bar height + spacing
+  
+  // Energy drain percentage
+  renderEnergyDrainRate(ctx, player, hudX, currentY);
+  currentY += lineSpacing;
   
   // Speed display
-  renderSpeed(ctx, player, config, 20, 105);
+  renderSpeed(ctx, player, config, hudX, currentY);
+  currentY += lineSpacing;
   
   // Distance remaining
-  renderDistance(ctx, player, gameState, 20, 130);
+  renderDistance(ctx, player, gameState, hudX, currentY);
+  currentY += lineSpacing;
   
   // Position
-  renderPosition(ctx, player, gameState, 20, 160);
+  renderPosition(ctx, player, gameState, hudX, currentY);
+  currentY += lineSpacing;
   
   // Points
-  renderPoints(ctx, player, 20, 190);
+  renderPoints(ctx, player, hudX, currentY);
   
   // Minimap
   renderMinimap(ctx, gameState, config, canvas.width - 220, canvas.height - 70);
@@ -278,21 +290,26 @@ function getEnergyColor(energy) {
 }
 
 /**
- * Render energy drain rate
+ * Render energy drain as percentage (0-100%)
+ * 0% = perfect drafting (no drain)
+ * 100% = maximum drain (solo at high speed)
  */
 function renderEnergyDrainRate(ctx, player, x, y) {
-  // Calculate approximate drain rate based on current energy drop
+  // Calculate drain percentage
+  // energyDrainRate is %/second, we normalize it to 0-100 scale
+  // Assume max drain is ~3%/s (aggressive solo), min is 0 (perfect draft)
   const drainRate = player.energyDrainRate || 0;
-  const drainPerSecond = drainRate.toFixed(2);
+  const maxDrainRate = 3.0; // Max expected drain rate %/s
+  const drainPercent = Math.min(100, (drainRate / maxDrainRate) * 100);
   
-  // Color based on drain rate
-  let color = '#00ff41'; // Green (good)
-  if (drainRate > 0.5) color = '#ffea00'; // Yellow (moderate)
-  if (drainRate > 1.0) color = '#ff0051'; // Red (high)
+  // Color based on drain percentage
+  let color = '#00ff41'; // Green (good/low drain)
+  if (drainPercent > 40) color = '#ffea00'; // Yellow (moderate)
+  if (drainPercent > 70) color = '#ff0051'; // Red (high drain)
   
   ctx.fillStyle = color;
-  ctx.font = 'bold 16px monospace';
-  ctx.fillText(`DRAIN: -${drainPerSecond}%/s`, x, y);
+  ctx.font = 'bold 18px monospace';
+  ctx.fillText(`DRAIN: ${Math.round(drainPercent)}%`, x, y);
 }
 
 /**
