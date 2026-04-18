@@ -39,29 +39,49 @@ export function render(gameState, config) {
 }
 
 /**
- * Render background layer (track, lanes)
+ * Render background layer (track, lanes) - scrolling with viewport
  */
 function renderBackground(gameState, config) {
   const ctx = contexts.background;
   const canvas = canvases.background;
   
-  // Clear
-  ctx.fillStyle = '#2d5016';
+  const player = gameState.riders.find(r => r.type === 'player');
+  if (!player) return;
+  
+  // Clear - retro vibrant track
+  ctx.fillStyle = '#1a1a2e'; // Dark purple-blue
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
   // Draw lanes
   const laneCount = config.race.lanes.total;
-  const laneWidth = canvas.height / laneCount;
+  const laneHeight = canvas.height / laneCount;
   
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#00ffff'; // Cyan lane markers
+  ctx.lineWidth = 3;
   
   for (let i = 1; i < laneCount; i++) {
-    const y = i * laneWidth;
+    const y = i * laneHeight;
     ctx.beginPath();
     ctx.setLineDash([10, 10]);
     ctx.moveTo(0, y);
     ctx.lineTo(canvas.width, y);
+    ctx.stroke();
+  }
+  
+  ctx.setLineDash([]);
+  
+  // Draw scrolling road markers (dashed center lines)
+  const markerSpacing = 50; // pixels between markers
+  const offset = (player.position * 10) % markerSpacing; // Scroll effect
+  
+  ctx.strokeStyle = 'rgba(255, 0, 255, 0.4)'; // Magenta markers
+  ctx.lineWidth = 2;
+  ctx.setLineDash([20, 20]);
+  
+  for (let x = -offset; x < canvas.width; x += markerSpacing) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, canvas.height);
     ctx.stroke();
   }
   
@@ -187,17 +207,20 @@ function renderHUD(gameState, config) {
   // Energy bar
   renderEnergyBar(ctx, player, 20, 20);
   
+  // Energy drain rate
+  renderEnergyDrainRate(ctx, player, 20, 65);
+  
   // Speed display
-  renderSpeed(ctx, player, config, 20, 80);
+  renderSpeed(ctx, player, config, 20, 100);
   
   // Distance remaining
-  renderDistance(ctx, player, gameState, 20, 110);
+  renderDistance(ctx, player, gameState, 20, 130);
   
   // Position
-  renderPosition(ctx, player, gameState, 20, 140);
+  renderPosition(ctx, player, gameState, 20, 160);
   
   // Points
-  renderPoints(ctx, player, 20, 170);
+  renderPoints(ctx, player, 20, 190);
   
   // Minimap
   renderMinimap(ctx, gameState, config, canvas.width - 220, canvas.height - 70);
@@ -207,11 +230,11 @@ function renderHUD(gameState, config) {
  * Render energy bar
  */
 function renderEnergyBar(ctx, player, x, y) {
-  const width = 200;
-  const height = 30;
+  const width = 250;
+  const height = 35;
   
   // Background
-  ctx.fillStyle = '#333';
+  ctx.fillStyle = '#000';
   ctx.fillRect(x, y, width, height);
   
   // Energy fill
@@ -219,24 +242,50 @@ function renderEnergyBar(ctx, player, x, y) {
   ctx.fillStyle = getEnergyColor(player.energy);
   ctx.fillRect(x, y, energyWidth, height);
   
-  // Border
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 2;
+  // Border - retro cyan
+  ctx.strokeStyle = '#00ffff';
+  ctx.lineWidth = 3;
   ctx.strokeRect(x, y, width, height);
   
-  // Text
+  // Text with black outline for visibility
+  ctx.font = 'bold 18px monospace';
+  const text = `ENERGY: ${Math.round(player.energy)}%`;
+  
+  // Black outline
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 4;
+  ctx.strokeText(text, x + 8, y + 24);
+  
+  // White fill
   ctx.fillStyle = '#fff';
-  ctx.font = '16px monospace';
-  ctx.fillText(`Energy: ${Math.round(player.energy)}%`, x + 5, y + 20);
+  ctx.fillText(text, x + 8, y + 24);
 }
 
 /**
- * Get energy bar color based on level
+ * Get energy bar color based on level (retro vibrant)
  */
 function getEnergyColor(energy) {
-  if (energy > 60) return '#00ff00';
-  if (energy > 30) return '#ffff00';
-  return '#ff0000';
+  if (energy > 60) return '#00ff41'; // Bright green
+  if (energy > 30) return '#ffea00'; // Bright yellow
+  return '#ff0051'; // Hot pink/red
+}
+
+/**
+ * Render energy drain rate
+ */
+function renderEnergyDrainRate(ctx, player, x, y) {
+  // Calculate approximate drain rate based on current energy drop
+  const drainRate = player.energyDrainRate || 0;
+  const drainPerSecond = drainRate.toFixed(2);
+  
+  // Color based on drain rate
+  let color = '#00ff41'; // Green (good)
+  if (drainRate > 0.5) color = '#ffea00'; // Yellow (moderate)
+  if (drainRate > 1.0) color = '#ff0051'; // Red (high)
+  
+  ctx.fillStyle = color;
+  ctx.font = 'bold 16px monospace';
+  ctx.fillText(`DRAIN: -${drainPerSecond}%/s`, x, y);
 }
 
 /**
@@ -244,9 +293,9 @@ function getEnergyColor(energy) {
  */
 function renderSpeed(ctx, player, config, x, y) {
   const mph = player.speed / 0.44704;
-  ctx.fillStyle = '#fff';
-  ctx.font = '18px monospace';
-  ctx.fillText(`Speed: ${Math.round(mph)} mph`, x, y);
+  ctx.fillStyle = '#00ffff';
+  ctx.font = 'bold 18px monospace';
+  ctx.fillText(`SPEED: ${Math.round(mph)} mph`, x, y);
 }
 
 /**
@@ -254,9 +303,9 @@ function renderSpeed(ctx, player, config, x, y) {
  */
 function renderDistance(ctx, player, gameState, x, y) {
   const remaining = gameState.race.totalDistance - player.position;
-  ctx.fillStyle = '#fff';
-  ctx.font = '18px monospace';
-  ctx.fillText(`Distance: ${Math.round(remaining)}m`, x, y);
+  ctx.fillStyle = '#ff00ff'; // Magenta
+  ctx.font = 'bold 18px monospace';
+  ctx.fillText(`DISTANCE: ${Math.round(remaining)}m`, x, y);
 }
 
 /**
@@ -267,18 +316,18 @@ function renderPosition(ctx, player, gameState, x, y) {
   const position = sorted.findIndex(r => r.id === player.id) + 1;
   const total = gameState.riders.length;
   
-  ctx.fillStyle = '#fff';
-  ctx.font = '18px monospace';
-  ctx.fillText(`Position: ${position} / ${total}`, x, y);
+  ctx.fillStyle = '#ffea00'; // Yellow
+  ctx.font = 'bold 18px monospace';
+  ctx.fillText(`POSITION: ${position} / ${total}`, x, y);
 }
 
 /**
  * Render points
  */
 function renderPoints(ctx, player, x, y) {
-  ctx.fillStyle = '#fff';
-  ctx.font = '18px monospace';
-  ctx.fillText(`Points: ${player.points}`, x, y);
+  ctx.fillStyle = '#00ff41'; // Green
+  ctx.font = 'bold 18px monospace';
+  ctx.fillText(`POINTS: ${player.points}`, x, y);
 }
 
 /**
