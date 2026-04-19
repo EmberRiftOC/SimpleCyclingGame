@@ -370,12 +370,15 @@ function renderMinimap(ctx, gameState, config, x, y) {
   ctx.lineWidth = 2;
   ctx.strokeRect(x, y, width, height);
   
-  // Riders
+  // Riders - positioned vertically by lane
+  const laneCount = config.race.lanes.total;
   for (const rider of gameState.riders) {
     const riderX = x + (rider.position / gameState.race.totalDistance) * width;
-    const riderY = y + height / 2;
+    // Map lane to vertical position: lane 1 (top) -> y, lane 5 (bottom) -> y + height
+    const lanePercent = (rider.lane - 1) / (laneCount - 1); // 0.0 (lane 1) to 1.0 (lane 5)
+    const riderY = y + lanePercent * height;
     
-    ctx.fillStyle = rider.type === 'player' ? '#FF3366' : '#888';
+    ctx.fillStyle = rider.type === 'player' ? '#FFD700' : '#888';
     ctx.beginPath();
     ctx.arc(riderX, riderY, 3, 0, Math.PI * 2);
     ctx.fill();
