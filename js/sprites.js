@@ -12,7 +12,7 @@
  * @param {boolean} isPlayer - Whether this is the player
  */
 export function drawCyclist(ctx, x, y, color, animFrame, isPlayer = false) {
-  const scale = 2; // Pixel size multiplier
+  const scale = 4; // Pixel size multiplier (2x larger for visibility)
   
   ctx.save();
   ctx.translate(x, y);
@@ -68,11 +68,17 @@ export function drawCyclist(ctx, x, y, color, animFrame, isPlayer = false) {
   // Legs - animated based on frame
   drawLegs(ctx, animFrame, scale, '#ffdbac');
   
+  // Black outline for all cyclists (improves visibility)
+  // Draw a black stroke around the entire cyclist sprite
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = scale * 0.8; // Outline thickness scales with sprite
+  ctx.strokeRect(-9 * scale, -10 * scale, 18 * scale, 13 * scale);
+  
   // Player indicator (glow)
   if (isPlayer) {
-    ctx.globalAlpha = 0.3;
-    ctx.fillStyle = '#00ffff';
-    ctx.fillRect(-9 * scale, -10 * scale, 18 * scale, 13 * scale);
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = '#FFD700'; // Bright yellow glow for player
+    ctx.fillRect(-10 * scale, -11 * scale, 20 * scale, 15 * scale);
     ctx.globalAlpha = 1.0;
   }
   

@@ -10,11 +10,11 @@
   },
   "riders": {
     "total": 10,
-    "playerColor": "#FF3366",
+    "playerColor": "#FFD700",
     "aiColors": {
-      "aggressive": "#FF6B35",
-      "balanced": "#4ECDC4",
-      "defensive": "#95E1D3"
+      "aggressive": "#FF4444",
+      "balanced": "#4488FF",
+      "defensive": "#44FF88"
     }
   },
   "defaultSpeed": {
