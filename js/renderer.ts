@@ -186,8 +186,10 @@ function renderRiders(gameState: GameState, config: RenderConfig): void {
       // Position within NeonCity road (lane 1 = top of road, lane 5 = bottom)
       const y = neonRoadTop + (visualLane - 0.5) * laneHeight;
 
-      // Calculate animation frame based on energy drain rate
-      const animFrame = getAnimationFrame(rider.energyDrainRate || 0, gameState.time);
+      // Freeze animation when rider has finished (coasting/stopped pose)
+      const animFrame = rider.finished
+        ? 0
+        : getAnimationFrame(rider.energyDrainRate || 0, gameState.time);
       const isPlayer = rider.type === 'player';
       const color = getRiderColor(rider, config);
 

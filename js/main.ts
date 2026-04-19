@@ -11,7 +11,7 @@ import * as input from './input.js';
 const PHYSICS_STEP = 1000 / 60; // 60 physics updates per second
 const ASPECT_RATIO = 2; // width:height = 2:1
 
-let raceManager: RaceManager;
+let raceManager: RaceManager | null = null;
 let configs: GameConfig;
 let lastTime = 0;
 let accumulator = 0;
@@ -95,7 +95,7 @@ function showSplashScreen(): void {
  * Start a new race
  */
 function startRace(): void {
-  raceManager = new RaceManager(configs);
+  raceManager = new RaceManager(configs); // Race simulation only starts here
   raceManager.initializeRace();
   lastTime = 0;
   accumulator = 0;
@@ -114,9 +114,11 @@ function handleResize(): void {
 
 /**
  * Main game loop - fixed timestep physics + variable rendering
+ * Only runs after startRace() is called (not during splash screen)
  */
 function gameLoop(currentTime: number): void {
-  if (!gameRunning) return;
+  if (!gameRunning || !raceManager) return;
+  const rm = raceManager; // narrow type for TS
 
   const deltaTime = currentTime - lastTime;
   lastTime = currentTime;
@@ -125,22 +127,22 @@ function gameLoop(currentTime: number): void {
   // Fixed-rate physics updates (deterministic)
   while (accumulator >= PHYSICS_STEP) {
     const playerCommands = input.getPlayerInput();
-    raceManager.processPlayerInput(playerCommands, PHYSICS_STEP);
-    raceManager.updateRace(PHYSICS_STEP);
+    rm.processPlayerInput(playerCommands, PHYSICS_STEP);
+    rm.updateRace(PHYSICS_STEP);
     accumulator -= PHYSICS_STEP;
   }
 
   // Variable-rate rendering (smooth at any refresh rate)
-  const gameState = raceManager.getState();
+  const gameState = rm.getState();
   const renderConfigs = {
-    race: raceManager.config.race,
-    prime: raceManager.config.prime,
-    drafting: raceManager.config.drafting,
+    race: rm.config.race,
+    prime: rm.config.prime,
+    drafting: rm.config.drafting,
   };
   renderer.render(gameState, renderConfigs);
 
   // Check for race end
-  if (raceManager.isFinished()) {
+  if (rm.isFinished()) {
     gameRunning = false;
     const raceTimeMs = currentTime - raceStartTime;
     setTimeout(() => handleRaceEnd(raceTimeMs), 1500);
@@ -184,6 +186,7 @@ function placementColor(pos: number): string {
  * Show finish screen with race results
  */
 function handleRaceEnd(raceTimeMs: number): void {
+  if (!raceManager) return;
   const gameState = raceManager.getState();
   const player = gameState.riders.find(r => r.type === 'player');
   if (!player) return;
