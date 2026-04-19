@@ -253,11 +253,15 @@ export class RaceManager {
   checkCollisions(): void {
     if (!this.gameState) return;
     const { riders } = this.gameState;
+    const finishLine = this.gameState.race.totalDistance;
 
     for (let i = 0; i < riders.length; i++) {
       for (let j = i + 1; j < riders.length; j++) {
         const riderA = riders[i];
         const riderB = riders[j];
+
+        // No collisions once either rider has crossed the finish line
+        if (riderA.position >= finishLine || riderB.position >= finishLine) continue;
 
         if (physics.checkCollision(riderA, riderB, this.config)) {
           // Determine rear rider
