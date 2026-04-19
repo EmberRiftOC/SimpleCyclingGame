@@ -68,11 +68,7 @@ export function drawCyclist(ctx, x, y, color, animFrame, isPlayer = false) {
   // Legs - animated based on frame
   drawLegs(ctx, animFrame, scale, '#ffdbac');
   
-  // Black outline for all cyclists (improves visibility)
-  // Draw a black stroke around the entire cyclist sprite
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = scale * 0.8; // Outline thickness scales with sprite
-  ctx.strokeRect(-9 * scale, -10 * scale, 18 * scale, 13 * scale);
+  // Note: Black box border removed per task-003
   
   // Player indicator (glow)
   if (isPlayer) {

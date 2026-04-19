@@ -12,9 +12,9 @@
     "total": 10,
     "playerColor": "#FFD700",
     "aiColors": {
-      "aggressive": "#FF4444",
-      "balanced": "#4488FF",
-      "defensive": "#44FF88"
+      "aggressive": "#e63946",
+      "balanced": "#4ecdc4",
+      "defensive": "#ff6b35"
     }
   },
   "defaultSpeed": {
