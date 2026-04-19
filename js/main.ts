@@ -99,7 +99,7 @@ function startRace(): void {
   raceStarted = true; // Guard: confirms START was clicked
   raceManager = new RaceManager(configs);
   raceManager.initializeRace();
-  lastTime = 0;
+  lastTime = performance.now(); // Must match rAF clock to avoid catch-up burst
   accumulator = 0;
   raceStartTime = performance.now();
   gameRunning = true;
@@ -122,8 +122,10 @@ function gameLoop(currentTime: number): void {
   if (!gameRunning || !raceStarted || !raceManager) return;
   const rm = raceManager; // narrow type for TS
 
-  const deltaTime = currentTime - lastTime;
+  const rawDelta = currentTime - lastTime;
   lastTime = currentTime;
+  // Cap delta at 100ms to prevent physics burst after tab switch or long splash wait
+  const deltaTime = Math.min(rawDelta, 100);
   accumulator += deltaTime;
 
   // Fixed-rate physics updates (deterministic)
