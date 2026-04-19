@@ -12,9 +12,11 @@ const PHYSICS_STEP = 1000 / 60; // 60 physics updates per second
 const ASPECT_RATIO = 2; // width:height = 2:1
 
 let raceManager: RaceManager;
+let configs: GameConfig;
 let lastTime = 0;
 let accumulator = 0;
 let gameRunning = false;
+let raceStartTime = 0;
 
 /**
  * Calculate canvas dimensions to fill the viewport while maintaining aspect ratio
@@ -32,42 +34,74 @@ function getCanvasDimensions(): { width: number; height: number } {
 }
 
 /**
- * Initialize game
+ * Initialize game assets and show splash screen
  */
 async function init(): Promise<void> {
   try {
     console.log('Loading configs...');
-    const configs: GameConfig = await loadConfigs();
+    configs = await loadConfigs();
 
     console.log('Initializing renderer...');
     const { width, height } = getCanvasDimensions();
     renderer.initializeRenderer(width, height);
 
-    // Handle window resize
     window.addEventListener('resize', handleResize);
-
-    console.log('Setting up input...');
     input.setupKeyboardControls();
 
-    console.log('Initializing race...');
-    raceManager = new RaceManager(configs);
-    raceManager.initializeRace();
-
-    console.log('Starting game loop...');
-    gameRunning = true;
-    requestAnimationFrame(gameLoop);
-
-    console.log('Game initialized successfully!');
+    showSplashScreen();
   } catch (error) {
     console.error('Failed to initialize game:', error);
     const message = error instanceof Error ? error.message : String(error);
     document.body.innerHTML = `
-      <div style="color: white; padding: 20px;">
+      <div style="color: white; padding: 20px; font-family: monospace;">
         <h1>Failed to load game</h1>
         <p>${message}</p>
       </div>
     `;
   }
+}
+
+/**
+ * Show the Breakaway splash screen
+ */
+function showSplashScreen(): void {
+  const splash = document.createElement('div');
+  splash.id = 'splash-screen';
+  splash.innerHTML = `
+    <div class="splash-inner">
+      <div class="splash-title">BREAKAWAY</div>
+      <div class="splash-subtitle">Energy Management Racing</div>
+      <div class="splash-controls">
+        <div>← → &nbsp; Speed</div>
+        <div>↑ ↓ &nbsp; Change Lane</div>
+        <div>Draft behind AI to conserve energy</div>
+      </div>
+      <button id="start-btn" class="splash-btn">START RACE</button>
+    </div>
+  `;
+  document.body.appendChild(splash);
+
+  document.getElementById('start-btn')!.addEventListener('click', () => {
+    splash.style.opacity = '0';
+    splash.style.transition = 'opacity 0.4s ease';
+    setTimeout(() => {
+      splash.remove();
+      startRace();
+    }, 400);
+  });
+}
+
+/**
+ * Start a new race
+ */
+function startRace(): void {
+  raceManager = new RaceManager(configs);
+  raceManager.initializeRace();
+  lastTime = 0;
+  accumulator = 0;
+  raceStartTime = performance.now();
+  gameRunning = true;
+  requestAnimationFrame(gameLoop);
 }
 
 /**
@@ -98,16 +132,18 @@ function gameLoop(currentTime: number): void {
 
   // Variable-rate rendering (smooth at any refresh rate)
   const gameState = raceManager.getState();
-  const configs = {
+  const renderConfigs = {
     race: raceManager.config.race,
     prime: raceManager.config.prime,
     drafting: raceManager.config.drafting,
   };
-  renderer.render(gameState, configs);
+  renderer.render(gameState, renderConfigs);
 
   // Check for race end
   if (raceManager.isFinished()) {
-    handleRaceEnd();
+    gameRunning = false;
+    const raceTimeMs = currentTime - raceStartTime;
+    setTimeout(() => handleRaceEnd(raceTimeMs), 1500);
     return;
   }
 
@@ -115,49 +151,73 @@ function gameLoop(currentTime: number): void {
 }
 
 /**
- * Handle race end
+ * Format milliseconds into MM:SS.ss
  */
-function handleRaceEnd(): void {
-  gameRunning = false;
+function formatTime(ms: number): string {
+  const totalSeconds = ms / 1000;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = (totalSeconds % 60).toFixed(2).padStart(5, '0');
+  return `${minutes}:${seconds}`;
+}
 
+/**
+ * Get ordinal suffix for placement
+ */
+function ordinal(n: number): string {
+  if (n === 1) return '1st';
+  if (n === 2) return '2nd';
+  if (n === 3) return '3rd';
+  return `${n}th`;
+}
+
+/**
+ * Get placement color class
+ */
+function placementColor(pos: number): string {
+  if (pos === 1) return '#FFD700'; // Gold
+  if (pos === 2) return '#C0C0C0'; // Silver
+  if (pos === 3) return '#CD7F32'; // Bronze
+  return '#ffffff';
+}
+
+/**
+ * Show finish screen with race results
+ */
+function handleRaceEnd(raceTimeMs: number): void {
   const gameState = raceManager.getState();
   const player = gameState.riders.find(r => r.type === 'player');
   if (!player) return;
 
-  const message = `
-    <div style="
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0, 0, 0, 0.9);
-      color: white;
-      padding: 40px;
-      border-radius: 10px;
-      text-align: center;
-      font-family: monospace;
-    ">
-      <h1>Race Finished!</h1>
-      <p style="font-size: 24px; margin: 20px 0;">
-        Position: ${player.finishPosition} / ${gameState.riders.length}
-      </p>
-      <p style="font-size: 20px;">
-        Points: ${player.points}<br>
-        Energy remaining: ${Math.round(player.energy)}%
-      </p>
-      <button onclick="location.reload()" style="
-        margin-top: 20px;
-        padding: 10px 20px;
-        font-size: 18px;
-        cursor: pointer;
-      ">
-        Race Again
-      </button>
+  const pos = player.finishPosition ?? gameState.riders.length;
+  const total = gameState.riders.length;
+  const color = placementColor(pos);
+  const podium = pos <= 3;
+
+  const finish = document.createElement('div');
+  finish.id = 'finish-screen';
+  finish.innerHTML = `
+    <div class="finish-inner">
+      <div class="finish-label">RACE COMPLETE</div>
+      <div class="finish-placement" style="color: ${color}">
+        ${ordinal(pos).toUpperCase()}
+        ${podium ? '<span class="finish-trophy">' + (pos === 1 ? '🏆' : pos === 2 ? '🥈' : '🥉') + '</span>' : ''}
+      </div>
+      <div class="finish-subtext">of ${total} riders</div>
+      <div class="finish-stats">
+        <div class="stat"><span class="stat-label">POINTS</span><span class="stat-value">${player.points}</span></div>
+        <div class="stat"><span class="stat-label">TIME</span><span class="stat-value">${formatTime(raceTimeMs)}</span></div>
+        <div class="stat"><span class="stat-label">ENERGY</span><span class="stat-value">${Math.round(player.energy)}%</span></div>
+      </div>
+      <button id="race-again-btn" class="splash-btn">RACE AGAIN</button>
     </div>
   `;
+  document.body.appendChild(finish);
 
-  document.body.insertAdjacentHTML('beforeend', message);
+  document.getElementById('race-again-btn')!.addEventListener('click', () => {
+    finish.remove();
+    startRace();
+  });
 }
 
-// Start game on page load
+// Start on page load
 window.addEventListener('load', init);

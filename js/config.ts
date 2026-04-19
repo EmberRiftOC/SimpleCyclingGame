@@ -109,9 +109,9 @@ const draftingConfig: DraftingConfig = {
 const aiConfig: AIConfig = {
   "aggressive": {
     "pacing": {
-      "normalSpeed": 1.15,
-      "sprintSpeed": 1.35,
-      "description": "15% faster than player default, burns energy fast"
+      "normalSpeed": 1.0,
+      "sprintSpeed": 1.2,
+      "description": "Same base speed as player, poor energy management means burns out late"
     },
     "acceleration": 2.5,
     "primeStrategy": "always",
@@ -124,8 +124,8 @@ const aiConfig: AIConfig = {
   },
   "balanced": {
     "pacing": {
-      "normalSpeed": 1.1,
-      "sprintSpeed": 1.25
+      "normalSpeed": 0.95,
+      "sprintSpeed": 1.1
     },
     "acceleration": 2.0,
     "primeStrategy": "opportunistic",
@@ -138,9 +138,9 @@ const aiConfig: AIConfig = {
   },
   "defensive": {
     "pacing": {
-      "normalSpeed": 1.05,
-      "sprintSpeed": 1.15,
-      "description": "Slightly faster than player, very energy-efficient"
+      "normalSpeed": 0.9,
+      "sprintSpeed": 1.05,
+      "description": "Slower but highly energy-efficient, strong late-race"
     },
     "acceleration": 1.5,
     "primeStrategy": "ignore",

@@ -4,6 +4,7 @@
 
 import type { GameConfig, GameState, Rider } from '../types';
 import { drawCyclist, getAnimationFrame } from './sprites.js';
+import { NeonCityBackground } from './NeonCityBackground.js';
 
 interface CanvasLayer {
   background: HTMLCanvasElement | null;
@@ -36,6 +37,10 @@ let contexts: ContextLayer = {
 // Scale factor relative to the baseline 1200px width
 let scaleFactor = 1.0;
 
+// Neon city background
+let neonCity: NeonCityBackground | null = null;
+let neonCanvas: HTMLCanvasElement | null = null;
+
 /**
  * Initialize canvas layers
  */
@@ -45,6 +50,12 @@ export function initializeRenderer(width: number, height: number): void {
   canvases.ui = document.getElementById('ui-layer') as HTMLCanvasElement;
 
   scaleFactor = width / 1200;
+
+  // Initialize neon city background on an offscreen canvas
+  if (!neonCanvas) {
+    neonCanvas = document.createElement('canvas');
+  }
+  neonCity = new NeonCityBackground(neonCanvas);
 
   (Object.keys(canvases) as LayerKey[]).forEach(key => {
     const canvas = canvases[key];
@@ -65,54 +76,27 @@ export function render(gameState: GameState, config: RenderConfig): void {
 }
 
 /**
- * Render background layer (track, lanes) - scrolling with viewport
+ * Render background layer using NeonCityBackground
  */
-function renderBackground(gameState: GameState, config: RenderConfig): void {
+function renderBackground(gameState: GameState, _config: RenderConfig): void {
   const ctx = contexts.background;
   const canvas = canvases.background;
-  if (!ctx || !canvas) return;
+  if (!ctx || !canvas || !neonCity || !neonCanvas) return;
 
   const player = gameState.riders.find(r => r.type === 'player');
-  if (!player) return;
 
-  // Clear - retro vibrant track
-  ctx.fillStyle = '#1a1a2e'; // Dark purple-blue
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Sync scroll speed to player velocity (pixels/frame at 60fps)
+  const normalSpeed = 11.176; // m/s baseline
+  const playerSpeed = player ? player.speed : normalSpeed;
+  neonCity.speed = (playerSpeed / normalSpeed) * 3; // scale to feel right
 
-  // Draw lanes
-  const laneCount = config.race.lanes.total;
-  const laneHeight = canvas.height / laneCount;
+  // Update and render the neon city at its native resolution
+  neonCity.update(1 / 60);
+  neonCity.render();
 
-  ctx.strokeStyle = '#00ffff'; // Cyan lane markers
-  ctx.lineWidth = 3;
-
-  for (let i = 1; i < laneCount; i++) {
-    const y = i * laneHeight;
-    ctx.beginPath();
-    ctx.setLineDash([10, 10]);
-    ctx.moveTo(0, y);
-    ctx.lineTo(canvas.width, y);
-    ctx.stroke();
-  }
-
-  ctx.setLineDash([]);
-
-  // Draw scrolling road markers (dashed center lines)
-  const markerSpacing = 50; // pixels between markers
-  const offset = (player.position * 10) % markerSpacing; // Scroll effect
-
-  ctx.strokeStyle = 'rgba(255, 0, 255, 0.4)'; // Magenta markers
-  ctx.lineWidth = 2;
-  ctx.setLineDash([20, 20]);
-
-  for (let x = -offset; x < canvas.width; x += markerSpacing) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, canvas.height);
-    ctx.stroke();
-  }
-
-  ctx.setLineDash([]);
+  // Scale neon canvas up to fill the game canvas
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(neonCanvas, 0, 0, canvas.width, canvas.height);
 }
 
 /**
@@ -139,7 +123,12 @@ function renderRiders(gameState: GameState, config: RenderConfig): void {
   const viewEnd = viewStart + viewportRange;
 
   const laneCount = config.race.lanes.total;
-  const laneHeight = canvas.height / laneCount;
+
+  // Map cyclists to NeonCity road coordinates
+  // NeonCity: ROAD_TOP=152, HEIGHT=216 at 384x216 native, scaled to canvas
+  const neonRoadTop = (152 / 216) * canvas.height;
+  const neonRoadBottom = canvas.height;
+  const laneHeight = (neonRoadBottom - neonRoadTop) / laneCount;
 
   // Helper to convert position to screen X
   const posToScreenX = (position: number): number => {
@@ -194,7 +183,8 @@ function renderRiders(gameState: GameState, config: RenderConfig): void {
 
       // Calculate visual lane (supports smooth interpolation if targetLane/laneProgress added)
       const visualLane = getVisualLane(rider);
-      const y = (visualLane - 0.5) * laneHeight;
+      // Position within NeonCity road (lane 1 = top of road, lane 5 = bottom)
+      const y = neonRoadTop + (visualLane - 0.5) * laneHeight;
 
       // Calculate animation frame based on energy drain rate
       const animFrame = getAnimationFrame(rider.energyDrainRate || 0, gameState.time);
