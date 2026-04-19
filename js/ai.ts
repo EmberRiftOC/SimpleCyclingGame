@@ -37,17 +37,33 @@ function calculateTargetSpeed(
     return normalSpeed * config.energy.zeroEnergyPenalty.speedMultiplier;
   }
 
-  // Energy-aware pacing - thresholds vary by AI personality
-  const energyFactor = getEnergySpeedFactor(rider.energy, behavior.energyManagement);
+  // Calculate race progress (0 = start, 1 = finish)
+  const raceProgress = rider.position / gameState.race.totalDistance;
+
+  // Projected energy at finish based on current drain rate
+  // This lets AI anticipate running out and conserve early
+  const distanceRemaining = gameState.race.totalDistance - rider.position;
+  const timeRemaining = distanceRemaining / (rider.speed || normalSpeed); // seconds
+  const projectedEnergy = rider.energy - rider.energyDrainRate * timeRemaining;
+
+  // Energy-aware pacing - combines current energy AND projection
+  // Use the lower of actual vs projected to be conservative
+  const effectiveEnergy = Math.min(rider.energy, Math.max(0, projectedEnergy));
+  const energyFactor = getEnergySpeedFactor(effectiveEnergy, behavior.energyManagement);
   const energyAdjustedBase = baseSpeed * energyFactor;
 
   // Check if there's an upcoming prime to sprint for
   if (shouldSprintForPrime(rider, gameState, config, behavior)) {
-    // Only sprint if we have enough energy
+    // Only sprint if projected to have enough energy
     const energyThreshold = behavior.energyManagement === 'poor' ? 10 : 25;
-    if (rider.energy > energyThreshold) {
+    if (effectiveEnergy > energyThreshold) {
       return normalSpeed * behavior.pacing.sprintSpeed * energyFactor;
     }
+  }
+
+  // Late-race surge: if energy to spare near finish, go hard
+  if (raceProgress > 0.85 && effectiveEnergy > 15) {
+    return Math.min(normalSpeed * behavior.pacing.sprintSpeed, baseSpeed * 1.05);
   }
 
   return energyAdjustedBase;
