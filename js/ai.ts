@@ -8,20 +8,20 @@ import type { AIBehavior, AIDecision, GameConfig, GameState, Prime, Rider } from
  * Update AI rider behavior
  */
 export function updateAI(rider: Rider, gameState: GameState, config: GameConfig): AIDecision {
-  const behavior = config.ai[rider.type];
+  const behavior = config.ai[rider.type as keyof typeof config.ai];
   if (!behavior) return { speed: rider.speed, targetLane: rider.lane };
-  
-  // Decide on speed adjustment
+
+  // Decide on speed adjustment based on energy-aware pacing
   const targetSpeed = calculateTargetSpeed(rider, gameState, config, behavior);
-  
+
   return {
     speed: targetSpeed,
-    targetLane: rider.lane // AI doesn't change lanes per spec
+    targetLane: rider.lane, // AI doesn't change lanes per spec
   };
 }
 
 /**
- * Calculate target speed based on AI behavior and race conditions
+ * Calculate target speed based on AI behavior, race conditions, and energy level
  */
 function calculateTargetSpeed(
   rider: Rider,
@@ -31,22 +31,60 @@ function calculateTargetSpeed(
 ): number {
   const normalSpeed = config.race.defaultSpeed.mps;
   const baseSpeed = normalSpeed * behavior.pacing.normalSpeed;
-  
+
+  // At 0% energy: hard cap at 50% of normal speed (same rule as player)
+  if (rider.energy <= 0) {
+    return normalSpeed * config.energy.zeroEnergyPenalty.speedMultiplier;
+  }
+
+  // Energy-aware pacing - thresholds vary by AI personality
+  const energyFactor = getEnergySpeedFactor(rider.energy, behavior.energyManagement);
+  const energyAdjustedBase = baseSpeed * energyFactor;
+
   // Check if there's an upcoming prime to sprint for
   if (shouldSprintForPrime(rider, gameState, config, behavior)) {
-    return normalSpeed * behavior.pacing.sprintSpeed;
+    // Only sprint if we have enough energy
+    const energyThreshold = behavior.energyManagement === 'poor' ? 10 : 25;
+    if (rider.energy > energyThreshold) {
+      return normalSpeed * behavior.pacing.sprintSpeed * energyFactor;
+    }
   }
-  
-  // Energy management
-  if (rider.energy < 20 && behavior.energyManagement === 'excellent') {
-    return baseSpeed * 0.8; // Slow down to conserve
+
+  return energyAdjustedBase;
+}
+
+/**
+ * Get speed multiplier based on energy level and AI energy management style.
+ * Each AI type responds differently to low energy.
+ *
+ * - 'excellent' (defensive): Starts conserving early, smooth taper
+ * - 'good' (balanced): Conserves in mid-range, more aggressive drop at low energy
+ * - 'poor' (aggressive): Ignores energy until critically low, then crashes hard
+ */
+function getEnergySpeedFactor(energy: number, management: string): number {
+  switch (management) {
+    case 'excellent':
+      // Starts tapering gently from 60% energy down
+      if (energy > 60) return 1.0;
+      if (energy > 40) return 0.97; // Slight conservation
+      if (energy > 20) return 0.92;
+      if (energy > 10) return 0.85;
+      return 0.75; // Nearly depleted - significant slowdown
+
+    case 'good':
+      // Holds pace well until ~30%, then drops off
+      if (energy > 30) return 1.0;
+      if (energy > 20) return 0.95;
+      if (energy > 10) return 0.87;
+      return 0.78;
+
+    case 'poor':
+    default:
+      // Hammers at full speed until the tank is almost empty
+      if (energy > 15) return 1.0;
+      if (energy > 5) return 0.88; // Sudden drop
+      return 0.72; // Blowing up
   }
-  
-  if (rider.energy < 10) {
-    return baseSpeed * 0.7; // Emergency conservation
-  }
-  
-  return baseSpeed;
 }
 
 /**
@@ -59,28 +97,28 @@ export function shouldSprintForPrime(
   behavior?: AIBehavior
 ): boolean {
   if (!behavior) {
-    behavior = config.ai[rider.type];
+    behavior = config.ai[rider.type as keyof typeof config.ai];
   }
-  
+
   const upcomingPrime = getNextUnclaimedPrime(rider, gameState);
   if (!upcomingPrime) return false;
-  
+
   const distanceToPrime = upcomingPrime.location - rider.position;
-  
-  // Different strategies based on AI type
-  if (behavior.primeStrategy === 'always') {
-    return distanceToPrime > 0 && distanceToPrime < 100;
+
+  switch (behavior.primeStrategy) {
+    case 'always':
+      return distanceToPrime > 0 && distanceToPrime < 100;
+
+    case 'opportunistic':
+      // Only go for it if reasonably close and has energy
+      return distanceToPrime > 0 && distanceToPrime < 50 && rider.energy > 30;
+
+    case 'ignore':
+      return false;
+
+    default:
+      return false;
   }
-  
-  if (behavior.primeStrategy === 'opportunistic') {
-    return distanceToPrime > 0 && distanceToPrime < 50 && rider.energy > 30;
-  }
-  
-  if (behavior.primeStrategy === 'ignore') {
-    return false;
-  }
-  
-  return false;
 }
 
 /**
@@ -105,12 +143,11 @@ export function adjustSpeed(
   acceleration: number = 2.0
 ): number {
   const maxChange = acceleration * (deltaTime / 1000);
-  
   const diff = targetSpeed - currentSpeed;
-  
+
   if (Math.abs(diff) <= maxChange) {
     return targetSpeed;
   }
-  
+
   return currentSpeed + Math.sign(diff) * maxChange;
 }
