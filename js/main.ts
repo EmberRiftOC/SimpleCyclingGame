@@ -16,6 +16,7 @@ let configs: GameConfig;
 let lastTime = 0;
 let accumulator = 0;
 let gameRunning = false;
+let raceStarted = false; // Set true only on START button click
 let raceStartTime = 0;
 
 /**
@@ -95,7 +96,8 @@ function showSplashScreen(): void {
  * Start a new race
  */
 function startRace(): void {
-  raceManager = new RaceManager(configs); // Race simulation only starts here
+  raceStarted = true; // Guard: confirms START was clicked
+  raceManager = new RaceManager(configs);
   raceManager.initializeRace();
   lastTime = 0;
   accumulator = 0;
@@ -117,7 +119,7 @@ function handleResize(): void {
  * Only runs after startRace() is called (not during splash screen)
  */
 function gameLoop(currentTime: number): void {
-  if (!gameRunning || !raceManager) return;
+  if (!gameRunning || !raceStarted || !raceManager) return;
   const rm = raceManager; // narrow type for TS
 
   const deltaTime = currentTime - lastTime;
