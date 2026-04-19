@@ -165,7 +165,14 @@ function renderRiders(gameState, config) {
   for (const rider of gameState.riders) {
     if (rider.position >= viewStart && rider.position <= viewEnd) {
       const x = posToScreenX(rider.position);
-      const y = (rider.lane - 0.5) * laneHeight;
+      
+      // Calculate visual lane position (interpolated during transitions)
+      let visualLane = rider.lane;
+      if (rider.targetLane !== rider.lane) {
+        // Smooth interpolation between current and target lane
+        visualLane = rider.lane + (rider.targetLane - rider.lane) * rider.laneProgress;
+      }
+      const y = (visualLane - 0.5) * laneHeight;
       
       // Calculate animation frame based on energy drain rate
       const animFrame = getAnimationFrame(rider.energyDrainRate || 0, gameState.time);
@@ -374,8 +381,15 @@ function renderMinimap(ctx, gameState, config, x, y) {
   const laneCount = config.race.lanes.total;
   for (const rider of gameState.riders) {
     const riderX = x + (rider.position / gameState.race.totalDistance) * width;
+    
+    // Calculate visual lane position (interpolated during transitions)
+    let visualLane = rider.lane;
+    if (rider.targetLane !== rider.lane) {
+      visualLane = rider.lane + (rider.targetLane - rider.lane) * rider.laneProgress;
+    }
+    
     // Map lane to vertical position: lane 1 (top) -> y, lane 5 (bottom) -> y + height
-    const lanePercent = (rider.lane - 1) / (laneCount - 1); // 0.0 (lane 1) to 1.0 (lane 5)
+    const lanePercent = (visualLane - 1) / (laneCount - 1); // 0.0 (lane 1) to 1.0 (lane 5)
     const riderY = y + lanePercent * height;
     
     ctx.fillStyle = rider.type === 'player' ? '#FFD700' : '#888';

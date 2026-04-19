@@ -28,6 +28,8 @@ export function createRider(id, type, lane, config) {
     id,
     type, // 'player' | 'aggressive' | 'balanced' | 'defensive'
     lane,
+    targetLane: lane, // For smooth lane transitions
+    laneProgress: 0, // 0-1, progress toward targetLane
     position: 0,
     speed: config.race.defaultSpeed.mps,
     energy: config.energy.startingEnergy,

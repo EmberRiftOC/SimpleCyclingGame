@@ -173,14 +173,27 @@ export class RaceManager {
       player.speed = Math.max(minSpeed, player.speed - acceleration * (deltaTime / 1000));
     }
     
-    // Lane change (instant, triggered once per key press)
+    // Lane change (smooth transition, triggered once per key press)
     if (commands.laneChange) {
-      const newLane = commands.laneChange === 'up' 
+      const targetLane = commands.laneChange === 'up' 
         ? player.lane - 1 
         : player.lane + 1;
       
-      if (newLane >= 1 && newLane <= this.config.race.lanes.total) {
-        player.lane = newLane;
+      if (targetLane >= 1 && targetLane <= this.config.race.lanes.total) {
+        player.targetLane = targetLane;
+        player.laneProgress = 0; // Start transition
+      }
+    }
+    
+    // Smooth lane transition animation
+    if (player.targetLane !== player.lane) {
+      const transitionSpeed = 5.0; // Lanes per second
+      player.laneProgress += (transitionSpeed * deltaTime) / 1000;
+      
+      if (player.laneProgress >= 1.0) {
+        // Transition complete
+        player.lane = player.targetLane;
+        player.laneProgress = 0;
       }
     }
   }
