@@ -2,6 +2,7 @@
  * Main entry point - game loop and initialization
  */
 
+import type { GameConfig } from '../types';
 import { loadConfigs } from './config.js';
 import { RaceManager } from './race-manager.js';
 import * as renderer from './renderer.js';
@@ -11,7 +12,7 @@ const PHYSICS_STEP = 1000 / 60; // 60 physics updates per second
 const CANVAS_WIDTH = 1200;
 const CANVAS_HEIGHT = 600;
 
-let raceManager;
+let raceManager: RaceManager;
 let lastTime = 0;
 let accumulator = 0;
 let gameRunning = false;
@@ -19,32 +20,33 @@ let gameRunning = false;
 /**
  * Initialize game
  */
-async function init() {
+async function init(): Promise<void> {
   try {
     console.log('Loading configs...');
-    const configs = await loadConfigs();
-    
+    const configs: GameConfig = await loadConfigs();
+
     console.log('Initializing renderer...');
     renderer.initializeRenderer(CANVAS_WIDTH, CANVAS_HEIGHT);
-    
+
     console.log('Setting up input...');
     input.setupKeyboardControls();
-    
+
     console.log('Initializing race...');
     raceManager = new RaceManager(configs);
     raceManager.initializeRace();
-    
+
     console.log('Starting game loop...');
     gameRunning = true;
     requestAnimationFrame(gameLoop);
-    
+
     console.log('Game initialized successfully!');
   } catch (error) {
     console.error('Failed to initialize game:', error);
+    const message = error instanceof Error ? error.message : String(error);
     document.body.innerHTML = `
       <div style="color: white; padding: 20px;">
         <h1>Failed to load game</h1>
-        <p>${error.message}</p>
+        <p>${message}</p>
       </div>
     `;
   }
@@ -53,13 +55,13 @@ async function init() {
 /**
  * Main game loop - fixed timestep physics + variable rendering
  */
-function gameLoop(currentTime) {
+function gameLoop(currentTime: number): void {
   if (!gameRunning) return;
-  
+
   const deltaTime = currentTime - lastTime;
   lastTime = currentTime;
   accumulator += deltaTime;
-  
+
   // Fixed-rate physics updates (deterministic)
   while (accumulator >= PHYSICS_STEP) {
     const playerCommands = input.getPlayerInput();
@@ -67,32 +69,35 @@ function gameLoop(currentTime) {
     raceManager.updateRace(PHYSICS_STEP);
     accumulator -= PHYSICS_STEP;
   }
-  
+
   // Variable-rate rendering (smooth at any refresh rate)
   const gameState = raceManager.getState();
-  const configs = { 
+  const configs = {
     race: raceManager.config.race,
     prime: raceManager.config.prime,
-    drafting: raceManager.config.drafting
+    drafting: raceManager.config.drafting,
   };
   renderer.render(gameState, configs);
-  
+
   // Check for race end
   if (raceManager.isFinished()) {
-    handleRaceEnd(gameState);
+    handleRaceEnd();
     return;
   }
-  
+
   requestAnimationFrame(gameLoop);
 }
 
 /**
  * Handle race end
  */
-function handleRaceEnd(gameState) {
+function handleRaceEnd(): void {
   gameRunning = false;
-  
+
+  const gameState = raceManager.getState();
   const player = gameState.riders.find(r => r.type === 'player');
+  if (!player) return;
+
   const message = `
     <div style="
       position: fixed;
@@ -124,7 +129,7 @@ function handleRaceEnd(gameState) {
       </button>
     </div>
   `;
-  
+
   document.body.insertAdjacentHTML('beforeend', message);
 }
 

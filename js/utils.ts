@@ -2,31 +2,33 @@
  * Utility functions for the cycling game
  */
 
+import type { Prime, PrimeConfig, Rider } from '../types';
+
 /**
  * Calculate distance between two points (1D)
  */
-export function distance(pointA, pointB) {
+export function distance(pointA: number, pointB: number): number {
   return Math.abs(pointB - pointA);
 }
 
 /**
  * Constrain value to range [min, max]
  */
-export function clamp(value, min, max) {
+export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
 /**
  * Linear interpolation between a and b
  */
-export function lerp(a, b, t) {
+export function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
 /**
  * Generate random prime locations based on config rules
  */
-export function generatePrimeLocations(config, totalDistance) {
+export function generatePrimeLocations(config: PrimeConfig, totalDistance: number): Prime[] {
   const { count, spawnRules } = config;
   const { minDistanceFromStart, minDistanceFromFinish, minSpacing, unit } = spawnRules;
   
@@ -67,20 +69,20 @@ export function generatePrimeLocations(config, totalDistance) {
 /**
  * Sort riders by position (descending - furthest ahead first)
  */
-export function sortRidersByPosition(riders) {
+export function sortRidersByPosition(riders: Rider[]): Rider[] {
   return [...riders].sort((a, b) => b.position - a.position);
 }
 
 /**
  * Convert mph to meters per second
  */
-export function mphToMps(mph) {
+export function mphToMps(mph: number): number {
   return mph * 0.44704;
 }
 
 /**
  * Convert mph to kph
  */
-export function mphToKph(mph) {
+export function mphToKph(mph: number): number {
   return mph * 1.60934;
 }

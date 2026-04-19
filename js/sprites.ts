@@ -4,14 +4,15 @@
 
 /**
  * Draw a pixel art cyclist
- * @param {CanvasRenderingContext2D} ctx - Canvas context
- * @param {number} x - X position
- * @param {number} y - Y position
- * @param {string} color - Rider color
- * @param {number} animFrame - Animation frame (0-3)
- * @param {boolean} isPlayer - Whether this is the player
  */
-export function drawCyclist(ctx, x, y, color, animFrame, isPlayer = false) {
+export function drawCyclist(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  color: string,
+  animFrame: number,
+  isPlayer: boolean = false
+): void {
   const scale = 4; // Pixel size multiplier (2x larger for visibility)
   
   ctx.save();
@@ -84,7 +85,7 @@ export function drawCyclist(ctx, x, y, color, animFrame, isPlayer = false) {
 /**
  * Draw animated legs based on pedaling frame
  */
-function drawLegs(ctx, frame, scale, skinColor) {
+function drawLegs(ctx: CanvasRenderingContext2D, frame: number, scale: number, skinColor: string): void {
   const pixel = (px, py) => {
     ctx.fillStyle = skinColor;
     ctx.fillRect(px * scale, py * scale, scale, scale);
@@ -130,7 +131,7 @@ function drawLegs(ctx, frame, scale, skinColor) {
 /**
  * Draw a wheel
  */
-function drawWheel(ctx, cx, cy, scale) {
+function drawWheel(ctx: CanvasRenderingContext2D, cx: number, cy: number, scale: number): void {
   ctx.fillStyle = '#333';
   
   // Wheel circle (pixelated)
@@ -150,7 +151,7 @@ function drawWheel(ctx, cx, cy, scale) {
 /**
  * Adjust color brightness
  */
-function adjustBrightness(color, amount) {
+function adjustBrightness(color: string, amount: number): string {
   const hex = color.replace('#', '');
   const r = Math.max(0, Math.min(255, parseInt(hex.substr(0, 2), 16) + amount));
   const g = Math.max(0, Math.min(255, parseInt(hex.substr(2, 2), 16) + amount));
@@ -162,7 +163,7 @@ function adjustBrightness(color, amount) {
  * Calculate animation frame based on energy drain rate
  * Higher drain = faster pedaling
  */
-export function getAnimationFrame(energyDrainRate, time) {
+export function getAnimationFrame(energyDrainRate: number, time: number): number {
   // Base animation speed (frames per second)
   const baseSpeed = 4; // 4 FPS at normal drain
   const speedMultiplier = Math.max(0.5, Math.min(3, energyDrainRate + 1));

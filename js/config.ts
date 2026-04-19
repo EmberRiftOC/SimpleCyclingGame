@@ -2,7 +2,9 @@
  * Configuration loader and manager
  */
 
-const raceConfig = {
+import type { AIConfig, DraftingConfig, EnergyConfig, GameConfig, PrimeConfig, RaceConfig } from '../types';
+
+const raceConfig: RaceConfig = {
   "distance": {
     "meters": 1000,
     "displayUnit": "meters"
@@ -14,11 +16,11 @@ const raceConfig = {
   },
   "riders": {
     "total": 5,
-    "playerColor": "#FF3366",
+    "playerColor": "#FFD700",
     "aiColors": {
-      "aggressive": "#FF6B35",
-      "balanced": "#4ECDC4",
-      "defensive": "#95E1D3"
+      "aggressive": "#FF4444",
+      "balanced": "#4488FF",
+      "defensive": "#44FF88"
     }
   },
   "defaultSpeed": {
@@ -40,7 +42,7 @@ const raceConfig = {
   }
 };
 
-const energyConfig = {
+const energyConfig: EnergyConfig = {
   "startingEnergy": 100,
   "depletionFormula": {
     "baseRateReference": 0.1,      // Base rate for 10km race
@@ -58,7 +60,7 @@ const energyConfig = {
   }
 };
 
-const draftingConfig = {
+const draftingConfig: DraftingConfig = {
   "draftZones": [
     {
       "minDistance": 0,
@@ -104,7 +106,7 @@ const draftingConfig = {
   }
 };
 
-const aiConfig = {
+const aiConfig: AIConfig = {
   "aggressive": {
     "pacing": {
       "normalSpeed": 1.1,
@@ -151,7 +153,7 @@ const aiConfig = {
   }
 };
 
-const primeConfig = {
+const primeConfig: PrimeConfig = {
   "count": 3,
   "randomization": true,
   "spawnRules": {
@@ -177,7 +179,7 @@ const primeConfig = {
   }
 };
 
-let configs = {
+let configs: GameConfig = {
   race: raceConfig,
   energy: energyConfig,
   drafting: draftingConfig,
@@ -188,14 +190,14 @@ let configs = {
 /**
  * Load all configuration files (now just returns cached configs)
  */
-export async function loadConfigs() {
+export async function loadConfigs(): Promise<GameConfig> {
   return configs;
 }
 
 /**
  * Get a specific config
  */
-export function getConfig(name) {
+export function getConfig<K extends keyof GameConfig>(name: K): GameConfig[K] {
   if (!configs[name]) {
     throw new Error(`Config '${name}' not loaded`);
   }
@@ -205,6 +207,6 @@ export function getConfig(name) {
 /**
  * Get all configs
  */
-export function getAllConfigs() {
+export function getAllConfigs(): GameConfig {
   return configs;
 }

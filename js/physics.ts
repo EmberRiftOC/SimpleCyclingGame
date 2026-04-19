@@ -2,10 +2,17 @@
  * Physics engine - movement, energy drain, collisions
  */
 
+import type { GameConfig, Rider } from '../types';
+
 /**
  * Calculate energy drain for a rider based on speed and drafting
  */
-export function calculateEnergyDrain(rider, config, draftMultiplier, deltaTime) {
+export function calculateEnergyDrain(
+  rider: Rider,
+  config: GameConfig,
+  draftMultiplier: number,
+  deltaTime: number
+): number {
   if (rider.energy <= 0) return 0;
   
   const { baseRateReference, referenceDistance, exponent } = config.energy.depletionFormula;
@@ -26,7 +33,7 @@ export function calculateEnergyDrain(rider, config, draftMultiplier, deltaTime) 
 /**
  * Update rider position based on speed
  */
-export function updatePosition(rider, deltaTime) {
+export function updatePosition(rider: Rider, deltaTime: number): number {
   const distance = rider.speed * (deltaTime / 1000);
   return rider.position + distance;
 }
@@ -34,7 +41,7 @@ export function updatePosition(rider, deltaTime) {
 /**
  * Calculate drafting energy multiplier based on distance to target
  */
-export function calculateDraftMultiplier(distance, config) {
+export function calculateDraftMultiplier(distance: number, config: GameConfig): number {
   const { draftZones, bikeLengthInMeters } = config.drafting;
   const bikeLengths = distance / bikeLengthInMeters;
   
@@ -50,7 +57,7 @@ export function calculateDraftMultiplier(distance, config) {
 /**
  * Check if two riders are colliding
  */
-export function checkCollision(riderA, riderB, config) {
+export function checkCollision(riderA: Rider, riderB: Rider, config: GameConfig): boolean {
   if (riderA.lane !== riderB.lane) return false;
   
   const distance = Math.abs(riderA.position - riderB.position);
@@ -63,7 +70,7 @@ export function checkCollision(riderA, riderB, config) {
 /**
  * Apply collision knockback to rear rider
  */
-export function applyCollisionKnockback(rider, config) {
+export function applyCollisionKnockback(rider: Rider, config: GameConfig): number {
   const { collisionKnockback, bikeLengthInMeters } = config.drafting;
   const knockbackBikeLengths = collisionKnockback.min + 
     Math.random() * (collisionKnockback.max - collisionKnockback.min);
@@ -75,7 +82,7 @@ export function applyCollisionKnockback(rider, config) {
 /**
  * Find the closest rider ahead in the same lane
  */
-export function findDraftTarget(rider, riders) {
+export function findDraftTarget(rider: Rider, riders: Rider[]): Rider | null {
   let closest = null;
   let minDistance = Infinity;
   

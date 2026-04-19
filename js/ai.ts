@@ -2,10 +2,12 @@
  * AI decision-making for computer-controlled riders
  */
 
+import type { AIBehavior, AIDecision, GameConfig, GameState, Prime, Rider } from '../types';
+
 /**
  * Update AI rider behavior
  */
-export function updateAI(rider, gameState, config) {
+export function updateAI(rider: Rider, gameState: GameState, config: GameConfig): AIDecision {
   const behavior = config.ai[rider.type];
   if (!behavior) return { speed: rider.speed, targetLane: rider.lane };
   
@@ -21,7 +23,12 @@ export function updateAI(rider, gameState, config) {
 /**
  * Calculate target speed based on AI behavior and race conditions
  */
-function calculateTargetSpeed(rider, gameState, config, behavior) {
+function calculateTargetSpeed(
+  rider: Rider,
+  gameState: GameState,
+  config: GameConfig,
+  behavior: AIBehavior
+): number {
   const normalSpeed = config.race.defaultSpeed.mps;
   const baseSpeed = normalSpeed * behavior.pacing.normalSpeed;
   
@@ -45,7 +52,12 @@ function calculateTargetSpeed(rider, gameState, config, behavior) {
 /**
  * Determine if AI should sprint for upcoming prime
  */
-export function shouldSprintForPrime(rider, gameState, config, behavior) {
+export function shouldSprintForPrime(
+  rider: Rider,
+  gameState: GameState,
+  config: GameConfig,
+  behavior?: AIBehavior
+): boolean {
   if (!behavior) {
     behavior = config.ai[rider.type];
   }
@@ -74,7 +86,7 @@ export function shouldSprintForPrime(rider, gameState, config, behavior) {
 /**
  * Find the next unclaimed prime ahead of the rider
  */
-function getNextUnclaimedPrime(rider, gameState) {
+function getNextUnclaimedPrime(rider: Rider, gameState: GameState): Prime | null {
   for (const prime of gameState.race.primes) {
     if (prime.location > rider.position && !prime.claimed) {
       return prime;
@@ -86,7 +98,12 @@ function getNextUnclaimedPrime(rider, gameState) {
 /**
  * Smooth speed adjustment (acceleration/braking)
  */
-export function adjustSpeed(currentSpeed, targetSpeed, deltaTime, acceleration = 2.0) {
+export function adjustSpeed(
+  currentSpeed: number,
+  targetSpeed: number,
+  deltaTime: number,
+  acceleration: number = 2.0
+): number {
   const maxChange = acceleration * (deltaTime / 1000);
   
   const diff = targetSpeed - currentSpeed;

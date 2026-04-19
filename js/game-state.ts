@@ -2,10 +2,12 @@
  * Game state management - single source of truth
  */
 
+import type { GameConfig, GameState, Rider, RiderType } from '../types';
+
 /**
  * Create initial game state
  */
-export function createGameState(configs) {
+export function createGameState(configs: GameConfig): GameState {
   const { race, energy, prime } = configs;
   
   return {
@@ -23,7 +25,7 @@ export function createGameState(configs) {
 /**
  * Create a rider object
  */
-export function createRider(id, type, lane, config) {
+export function createRider(id: string, type: RiderType, lane: number, config: GameConfig): Rider {
   return {
     id,
     type, // 'player' | 'aggressive' | 'balanced' | 'defensive'
@@ -46,6 +48,6 @@ export function createRider(id, type, lane, config) {
 /**
  * Deep clone game state (for immutability)
  */
-export function cloneState(state) {
+export function cloneState(state: GameState): GameState {
   return JSON.parse(JSON.stringify(state));
 }

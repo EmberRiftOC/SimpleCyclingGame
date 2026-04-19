@@ -2,7 +2,9 @@
  * Input handling for player controls
  */
 
-let inputState = {
+import type { PlayerInput } from '../types';
+
+let inputState: PlayerInput = {
   accelerate: false,
   brake: false,
   laneChange: null, // 'up' | 'down' | null (one-shot, cleared after read)
@@ -25,7 +27,7 @@ export function removeKeyboardControls() {
   document.removeEventListener('keyup', handleKeyUp);
 }
 
-function handleKeyDown(event) {
+function handleKeyDown(event: KeyboardEvent): void {
   // Ignore key repeats (holding key down)
   if (event.repeat) return;
   
@@ -49,7 +51,7 @@ function handleKeyDown(event) {
   }
 }
 
-function handleKeyUp(event) {
+function handleKeyUp(event: KeyboardEvent): void {
   switch (event.key) {
     case 'ArrowUp':
     case 'ArrowDown':
@@ -74,7 +76,7 @@ export function setupTouchControls() {
 /**
  * Get current input state and clear one-shot events
  */
-export function getPlayerInput() {
+export function getPlayerInput(): PlayerInput {
   const input = { ...inputState };
   
   // Clear one-shot lane change after read
@@ -86,7 +88,7 @@ export function getPlayerInput() {
 /**
  * Reset input state (useful for testing)
  */
-export function resetInputState() {
+export function resetInputState(): void {
   inputState = {
     accelerate: false,
     brake: false,
