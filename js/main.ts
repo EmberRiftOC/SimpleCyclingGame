@@ -9,13 +9,27 @@ import * as renderer from './renderer.js';
 import * as input from './input.js';
 
 const PHYSICS_STEP = 1000 / 60; // 60 physics updates per second
-const CANVAS_WIDTH = 1200;
-const CANVAS_HEIGHT = 600;
+const ASPECT_RATIO = 2; // width:height = 2:1
 
 let raceManager: RaceManager;
 let lastTime = 0;
 let accumulator = 0;
 let gameRunning = false;
+
+/**
+ * Calculate canvas dimensions to fill the viewport while maintaining aspect ratio
+ */
+function getCanvasDimensions(): { width: number; height: number } {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  let width = vw;
+  let height = Math.round(width / ASPECT_RATIO);
+  if (height > vh) {
+    height = vh;
+    width = Math.round(height * ASPECT_RATIO);
+  }
+  return { width, height };
+}
 
 /**
  * Initialize game
@@ -26,7 +40,11 @@ async function init(): Promise<void> {
     const configs: GameConfig = await loadConfigs();
 
     console.log('Initializing renderer...');
-    renderer.initializeRenderer(CANVAS_WIDTH, CANVAS_HEIGHT);
+    const { width, height } = getCanvasDimensions();
+    renderer.initializeRenderer(width, height);
+
+    // Handle window resize
+    window.addEventListener('resize', handleResize);
 
     console.log('Setting up input...');
     input.setupKeyboardControls();
@@ -50,6 +68,14 @@ async function init(): Promise<void> {
       </div>
     `;
   }
+}
+
+/**
+ * Handle window resize - reinitialize renderer at new dimensions
+ */
+function handleResize(): void {
+  const { width, height } = getCanvasDimensions();
+  renderer.initializeRenderer(width, height);
 }
 
 /**

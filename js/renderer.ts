@@ -33,6 +33,9 @@ let contexts: ContextLayer = {
   ui: null,
 };
 
+// Scale factor relative to the baseline 1200px width
+let scaleFactor = 1.0;
+
 /**
  * Initialize canvas layers
  */
@@ -40,6 +43,8 @@ export function initializeRenderer(width: number, height: number): void {
   canvases.background = document.getElementById('background-layer') as HTMLCanvasElement;
   canvases.rider = document.getElementById('rider-layer') as HTMLCanvasElement;
   canvases.ui = document.getElementById('ui-layer') as HTMLCanvasElement;
+
+  scaleFactor = width / 1200;
 
   (Object.keys(canvases) as LayerKey[]).forEach(key => {
     const canvas = canvases[key];
@@ -260,38 +265,41 @@ function renderHUD(gameState: GameState, config: RenderConfig): void {
   const player = gameState.riders.find(r => r.type === 'player');
   if (!player) return;
 
-  // HUD element spacing
-  const hudX = 20;
-  const hudStartY = 20;
-  const lineSpacing = 30;
+  // HUD element spacing (scales with canvas size)
+  const s = scaleFactor;
+  const hudX = Math.round(20 * s);
+  const hudStartY = Math.round(20 * s);
+  const lineSpacing = Math.round(30 * s);
 
   let currentY = hudStartY;
 
   // Energy bar (takes 2 lines worth of space)
-  renderEnergyBar(ctx, player, hudX, currentY);
-  currentY += 60; // Energy bar height + spacing
+  renderEnergyBar(ctx, player, hudX, currentY, s);
+  currentY += Math.round(60 * s); // Energy bar height + spacing
 
   // Energy drain percentage
-  renderEnergyDrainRate(ctx, player, hudX, currentY);
+  renderEnergyDrainRate(ctx, player, hudX, currentY, s);
   currentY += lineSpacing;
 
   // Speed display
-  renderSpeed(ctx, player, config, hudX, currentY);
+  renderSpeed(ctx, player, config, hudX, currentY, s);
   currentY += lineSpacing;
 
   // Distance remaining
-  renderDistance(ctx, player, gameState, hudX, currentY);
+  renderDistance(ctx, player, gameState, hudX, currentY, s);
   currentY += lineSpacing;
 
   // Position
-  renderPosition(ctx, player, gameState, hudX, currentY);
+  renderPosition(ctx, player, gameState, hudX, currentY, s);
   currentY += lineSpacing;
 
   // Points
-  renderPoints(ctx, player, hudX, currentY);
+  renderPoints(ctx, player, hudX, currentY, s);
 
-  // Minimap
-  renderMinimap(ctx, gameState, config, canvas.width - 220, canvas.height - 70);
+  // Minimap (scaled, pinned to bottom-right)
+  const mapW = Math.round(200 * s);
+  const mapH = Math.round(50 * s);
+  renderMinimap(ctx, gameState, config, canvas.width - mapW - Math.round(20 * s), canvas.height - mapH - Math.round(20 * s), mapW, mapH);
 }
 
 /**
@@ -301,10 +309,12 @@ function renderEnergyBar(
   ctx: CanvasRenderingContext2D,
   player: Rider,
   x: number,
-  y: number
+  y: number,
+  s: number = 1
 ): void {
-  const width = 250;
-  const height = 35;
+  const width = Math.round(250 * s);
+  const height = Math.round(35 * s);
+  const fontSize = Math.round(18 * s);
 
   // Background
   ctx.fillStyle = '#000';
@@ -317,21 +327,23 @@ function renderEnergyBar(
 
   // Border - retro cyan
   ctx.strokeStyle = '#00ffff';
-  ctx.lineWidth = 3;
+  ctx.lineWidth = Math.max(1, Math.round(3 * s));
   ctx.strokeRect(x, y, width, height);
 
   // Text with black outline for visibility
-  ctx.font = 'bold 18px monospace';
+  ctx.font = `bold ${fontSize}px monospace`;
   const text = `ENERGY: ${Math.round(player.energy)}%`;
+  const textX = x + Math.round(8 * s);
+  const textY = y + Math.round(24 * s);
 
   // Black outline
   ctx.strokeStyle = '#000';
-  ctx.lineWidth = 4;
-  ctx.strokeText(text, x + 8, y + 24);
+  ctx.lineWidth = Math.round(4 * s);
+  ctx.strokeText(text, textX, textY);
 
   // White fill
   ctx.fillStyle = '#fff';
-  ctx.fillText(text, x + 8, y + 24);
+  ctx.fillText(text, textX, textY);
 }
 
 /**
@@ -350,7 +362,8 @@ function renderEnergyDrainRate(
   ctx: CanvasRenderingContext2D,
   player: Rider,
   x: number,
-  y: number
+  y: number,
+  s: number = 1
 ): void {
   const drainRate = player.energyDrainRate || 0;
   const maxDrainRate = 3.0;
@@ -361,7 +374,7 @@ function renderEnergyDrainRate(
   if (drainPercent > 70) color = '#ff0051';
 
   ctx.fillStyle = color;
-  ctx.font = 'bold 18px monospace';
+  ctx.font = `bold ${Math.round(18 * s)}px monospace`;
   ctx.fillText(`DRAIN: ${Math.round(drainPercent)}%`, x, y);
 }
 
@@ -373,11 +386,12 @@ function renderSpeed(
   player: Rider,
   _config: RenderConfig,
   x: number,
-  y: number
+  y: number,
+  s: number = 1
 ): void {
   const mph = player.speed / 0.44704;
   ctx.fillStyle = '#00ffff';
-  ctx.font = 'bold 18px monospace';
+  ctx.font = `bold ${Math.round(18 * s)}px monospace`;
   ctx.fillText(`SPEED: ${Math.round(mph)} mph`, x, y);
 }
 
@@ -389,11 +403,12 @@ function renderDistance(
   player: Rider,
   gameState: GameState,
   x: number,
-  y: number
+  y: number,
+  s: number = 1
 ): void {
   const remaining = gameState.race.totalDistance - player.position;
   ctx.fillStyle = '#ff00ff';
-  ctx.font = 'bold 18px monospace';
+  ctx.font = `bold ${Math.round(18 * s)}px monospace`;
   ctx.fillText(`DISTANCE: ${Math.round(remaining)}m`, x, y);
 }
 
@@ -405,23 +420,24 @@ function renderPosition(
   player: Rider,
   gameState: GameState,
   x: number,
-  y: number
+  y: number,
+  s: number = 1
 ): void {
   const sorted = [...gameState.riders].sort((a, b) => b.position - a.position);
   const position = sorted.findIndex(r => r.id === player.id) + 1;
   const total = gameState.riders.length;
 
   ctx.fillStyle = '#ffea00';
-  ctx.font = 'bold 18px monospace';
+  ctx.font = `bold ${Math.round(18 * s)}px monospace`;
   ctx.fillText(`POSITION: ${position} / ${total}`, x, y);
 }
 
 /**
  * Render points
  */
-function renderPoints(ctx: CanvasRenderingContext2D, player: Rider, x: number, y: number): void {
+function renderPoints(ctx: CanvasRenderingContext2D, player: Rider, x: number, y: number, s: number = 1): void {
   ctx.fillStyle = '#00ff41';
-  ctx.font = 'bold 18px monospace';
+  ctx.font = `bold ${Math.round(18 * s)}px monospace`;
   ctx.fillText(`POINTS: ${player.points}`, x, y);
 }
 
@@ -433,10 +449,10 @@ function renderMinimap(
   gameState: GameState,
   config: RenderConfig,
   x: number,
-  y: number
+  y: number,
+  width: number = 200,
+  height: number = 50
 ): void {
-  const width = 200;
-  const height = 50;
 
   // Background
   ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
