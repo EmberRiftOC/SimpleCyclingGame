@@ -71,7 +71,7 @@ function showSplashScreen(): void {
   splash.innerHTML = `
     <div class="splash-inner">
       <div class="splash-title">BREAKAWAY</div>
-      <div class="splash-subtitle">Energy Management Racing</div>
+
       <div class="splash-controls">
         <div>← → &nbsp; Speed</div>
         <div>↑ ↓ &nbsp; Change Lane</div>
