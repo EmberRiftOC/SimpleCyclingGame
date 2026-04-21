@@ -183,9 +183,9 @@ function renderRiders(gameState: GameState, config: RenderConfig): void {
     .filter(r => r.position >= viewStart && r.position <= viewEnd)
     .sort((a, b) => getVisualLane(a) - getVisualLane(b));
 
-  // Perspective scale: lane 1 (far) = 0.75x, lane 5 (close) = 1.25x
-  const minScale = 0.75;
-  const maxScale = 1.25;
+  // Perspective scale: lane 1 (far) = 0.9x, lane 5 (close) = 1.1x
+  const minScale = 0.9;
+  const maxScale = 1.1;
 
   for (const rider of visibleRiders) {
     const x = posToScreenX(rider.position);
