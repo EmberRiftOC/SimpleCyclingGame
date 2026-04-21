@@ -11,6 +11,11 @@ import * as input from './input.js';
 const PHYSICS_STEP = 1000 / 60; // 60 physics updates per second
 const ASPECT_RATIO = 2; // width:height = 2:1
 
+// Debug mode — only active when ?debug=<token> is present in URL
+const DEBUG_TOKEN = 'a3f9e2b1c84d7f0e6a5b2c1d9e8f7a4b';
+const _debugParam = new URLSearchParams(window.location.search).get('debug');
+const DEBUG_ENABLED = _debugParam === DEBUG_TOKEN;
+
 let raceManager: RaceManager | null = null;
 let configs: GameConfig;
 let lastTime = 0;
@@ -138,6 +143,41 @@ function gameLoop(currentTime: number): void {
 
   // Variable-rate rendering (smooth at any refresh rate)
   const gameState = rm.getState();
+
+  // Expose debug state (only when debug token is present in URL)
+  if (DEBUG_ENABLED) {
+    const player = gameState.riders.find(r => r.type === 'player');
+    (window as any).gameDebug = {
+      player: player ? {
+        lane: player.lane,
+        x: player.position,
+        energy: player.energy,
+        speed: player.speed,
+        isDrafting: player.isDrafting ?? false,
+        drainRate: player.energyDrainRate,
+      } : null,
+      riders: gameState.riders.map(r => ({
+        id: r.id,
+        lane: r.lane,
+        x: r.position,
+        energy: r.energy,
+        isPlayer: r.type === 'player',
+      })),
+      race: {
+        distanceCovered: player?.position ?? 0,
+        distanceRemaining: gameState.race.totalDistance - (player?.position ?? 0),
+        totalDistance: gameState.race.totalDistance,
+        elapsedTime: gameState.time / 1000,
+        started: raceStarted,
+        finished: gameState.race.finished,
+        primes: gameState.race.primes.map(p => ({
+          position: p.location,
+          crossed: p.claimed,
+        })),
+      },
+    };
+  }
+
   const renderConfigs = {
     race: rm.config.race,
     prime: rm.config.prime,

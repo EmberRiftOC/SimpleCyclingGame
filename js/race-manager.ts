@@ -94,6 +94,7 @@ export class RaceManager {
         const distance = draftTarget.position - rider.position;
         draftMultiplier = physics.calculateDraftMultiplier(distance, this.config);
       }
+      rider.isDrafting = draftMultiplier < 1.0;
 
       // Track previous energy for drain rate calculation
       const previousEnergy = rider.energy;

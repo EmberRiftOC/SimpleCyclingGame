@@ -20,6 +20,7 @@ export interface Rider {
   coasting: boolean;
   coastDistance: number;
   speedMultiplier?: number; // Per-rider speed jitter for variability
+  isDrafting?: boolean;       // True when actively in a draft zone
 }
 
 // Prime sprint
