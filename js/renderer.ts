@@ -474,7 +474,15 @@ function renderMinimap(
     const lanePercent = (visualLane - 1) / (laneCount - 1);
     const riderY = y + lanePercent * height;
 
-    ctx.fillStyle = rider.type === 'player' ? '#FFD700' : '#888';
+    let dotColor: string;
+    if (rider.type === 'player') {
+      dotColor = '#FFD700'; // Gold for player
+    } else if (rider.energy <= 0) {
+      dotColor = '#FF0000'; // Red for depleted AI
+    } else {
+      dotColor = '#888888'; // Gray for normal AI
+    }
+    ctx.fillStyle = dotColor;
     ctx.beginPath();
     ctx.arc(riderX, riderY, 3, 0, Math.PI * 2);
     ctx.fill();

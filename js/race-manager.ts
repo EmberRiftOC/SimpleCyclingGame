@@ -57,6 +57,11 @@ export class RaceManager {
     for (let i = 0; i < lanes.length; i++) {
       const type = aiTypes[i % aiTypes.length];
       const aiRider = createRider(`ai-${i}`, type, lanes[i], this.config);
+      
+      // Apply per-rider speed randomization (+/- 5% of normal speed)
+      const jitter = (Math.random() * 0.1) - 0.05;
+      aiRider.speedMultiplier = 1.0 + jitter;
+      
       this.gameState.riders.push(aiRider);
     }
 

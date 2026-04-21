@@ -30,7 +30,8 @@ function calculateTargetSpeed(
   behavior: AIBehavior
 ): number {
   const normalSpeed = config.race.defaultSpeed.mps;
-  const baseSpeed = normalSpeed * behavior.pacing.normalSpeed;
+  const jitter = rider.speedMultiplier ?? 1.0;
+  const baseSpeed = normalSpeed * behavior.pacing.normalSpeed * jitter;
 
   // At 0% energy: hard cap at 50% of normal speed (same rule as player)
   if (rider.energy <= 0) {

@@ -19,6 +19,7 @@ export interface Rider {
   finishPosition: number | null;
   coasting: boolean;
   coastDistance: number;
+  speedMultiplier?: number; // Per-rider speed jitter for variability
 }
 
 // Prime sprint
