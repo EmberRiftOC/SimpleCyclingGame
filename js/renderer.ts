@@ -126,8 +126,10 @@ function renderRiders(gameState: GameState, config: RenderConfig): void {
 
   // Map cyclists to NeonCity road coordinates
   // NeonCity: ROAD_TOP=152, HEIGHT=216 at 384x216 native, scaled to canvas
+  // Add bottom padding so lane 5 cyclists aren't clipped at canvas edge
+  const spriteHalfHeight = 20 * scaleFactor; // Approximate half-height of cyclist sprite
   const neonRoadTop = (152 / 216) * canvas.height;
-  const neonRoadBottom = canvas.height;
+  const neonRoadBottom = canvas.height - spriteHalfHeight;
   const laneHeight = (neonRoadBottom - neonRoadTop) / laneCount;
 
   // Helper to convert position to screen X
