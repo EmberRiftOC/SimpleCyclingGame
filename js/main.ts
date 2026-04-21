@@ -177,9 +177,10 @@ function gameLoop(currentTime: number): void {
         id: r.id,
         lane: r.lane,
         x: r.position,
-        energy: r.energy,       // absolute value (player: 0-100, AI: 0-150)
-        maxEnergy: r.maxEnergy, // ceiling for this rider
+        energy: r.energy,           // absolute value (player: 0-100, AI: 0-150)
+        maxEnergy: r.maxEnergy,     // ceiling for this rider
         isPlayer: r.type === 'player',
+        personality: r.type,        // 'player' | 'aggressive' | 'balanced' | 'defensive'
       })),
       race: {
         distanceCovered: player?.position ?? 0,
