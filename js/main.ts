@@ -54,6 +54,23 @@ async function init(): Promise<void> {
     window.addEventListener('resize', handleResize);
     input.setupKeyboardControls();
 
+    // Populate debug state with pre-race sentinel so AC7 is testable before START
+    if (DEBUG_ENABLED) {
+      (window as any).gameDebug = {
+        player: null,
+        riders: [],
+        race: {
+          distanceCovered: 0,
+          distanceRemaining: configs.race.distance.meters,
+          totalDistance: configs.race.distance.meters,
+          elapsedTime: 0,
+          started: false,
+          finished: false,
+          primes: [],
+        },
+      };
+    }
+
     showSplashScreen();
   } catch (error) {
     console.error('Failed to initialize game:', error);
@@ -160,7 +177,7 @@ function gameLoop(currentTime: number): void {
         id: r.id,
         lane: r.lane,
         x: r.position,
-        energy: r.energy,
+        energy: Math.round((r.energy / r.maxEnergy) * 100), // normalized 0-100
         isPlayer: r.type === 'player',
       })),
       race: {

@@ -12,6 +12,7 @@ export interface Rider {
   position: number;
   speed: number;
   energy: number;
+  maxEnergy: number;
   energyDrainRate: number;
   crashed: boolean;
   points: number;
