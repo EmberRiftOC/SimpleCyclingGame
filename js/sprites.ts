@@ -330,6 +330,7 @@ function darkenColor(color: string, amount: number = 40): string {
 /**
  * Draw a cyclist sprite at (x, y) using the high-quality pixel art renderer.
  * Renders at 2x scale (96x96) for visibility.
+ * @param laneScale - perspective scale multiplier (1.0 = normal, >1.0 = larger/closer)
  */
 export function drawCyclist(
   ctx: CanvasRenderingContext2D,
@@ -337,9 +338,10 @@ export function drawCyclist(
   y: number,
   color: string,
   animFrame: number,
-  isPlayer: boolean = false
+  isPlayer: boolean = false,
+  laneScale: number = 1.0
 ): void {
-  const RENDER_SCALE = 2; // 48x48 sprite rendered at 2x = 96x96
+  const RENDER_SCALE = 2 * laneScale; // Scale by lane for perspective effect
   const shade = darkenColor(color, 40);
   const frames = getFrames(color, shade);
   const frame = frames[Math.abs(animFrame) % 6];

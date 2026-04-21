@@ -178,29 +178,38 @@ function renderRiders(gameState: GameState, config: RenderConfig): void {
     }
   }
 
-  // Draw riders if in view
-  for (const rider of gameState.riders) {
-    if (rider.position >= viewStart && rider.position <= viewEnd) {
-      const x = posToScreenX(rider.position);
+  // Sort riders by lane ascending so lane 5 (closest) draws last and appears on top
+  const visibleRiders = gameState.riders
+    .filter(r => r.position >= viewStart && r.position <= viewEnd)
+    .sort((a, b) => getVisualLane(a) - getVisualLane(b));
 
-      // Calculate visual lane (supports smooth interpolation if targetLane/laneProgress added)
-      const visualLane = getVisualLane(rider);
-      // Position within NeonCity road (lane 1 = top of road, lane 5 = bottom)
-      const y = neonRoadTop + (visualLane - 0.5) * laneHeight;
+  // Perspective scale: lane 1 (far) = 0.75x, lane 5 (close) = 1.25x
+  const minScale = 0.75;
+  const maxScale = 1.25;
 
-      // Freeze animation when rider has finished (coasting/stopped pose)
-      const animFrame = rider.finished
-        ? 0
-        : getAnimationFrame(rider.energyDrainRate || 0, gameState.time);
-      const isPlayer = rider.type === 'player';
-      const color = getRiderColor(rider, config);
+  for (const rider of visibleRiders) {
+    const x = posToScreenX(rider.position);
 
-      // Draw cyclist sprite
-      drawCyclist(ctx, x, y, color, animFrame, isPlayer);
+    // Calculate visual lane (supports smooth interpolation if targetLane/laneProgress added)
+    const visualLane = getVisualLane(rider);
+    // Position within NeonCity road (lane 1 = top of road, lane 5 = bottom)
+    const y = neonRoadTop + (visualLane - 0.5) * laneHeight;
 
-      // Draw draft indicator if applicable
-      renderDraftIndicator(ctx, rider, gameState, config, x, y);
-    }
+    // Perspective scale based on lane (lane 1 = small/far, lane 5 = large/close)
+    const laneScale = minScale + ((visualLane - 1) / (laneCount - 1)) * (maxScale - minScale);
+
+    // Freeze animation when rider has finished (coasting/stopped pose)
+    const animFrame = rider.finished
+      ? 0
+      : getAnimationFrame(rider.energyDrainRate || 0, gameState.time);
+    const isPlayer = rider.type === 'player';
+    const color = getRiderColor(rider, config);
+
+    // Draw cyclist sprite with perspective scale
+    drawCyclist(ctx, x, y, color, animFrame, isPlayer, laneScale);
+
+    // Draw draft indicator if applicable
+    renderDraftIndicator(ctx, rider, gameState, config, x, y);
   }
 }
 
