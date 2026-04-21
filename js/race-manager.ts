@@ -7,6 +7,7 @@ import { createGameState, createRider } from './game-state.js';
 import { generatePrimeLocations } from './utils.js';
 import * as physics from './physics.js';
 import * as ai from './ai.js';
+import { resetPacingStates } from './ai.js';
 
 interface ExtendedRider extends Rider {
   targetLane?: number;
@@ -28,6 +29,7 @@ export class RaceManager {
    * Initialize race with riders and primes
    */
   initializeRace(): void {
+    resetPacingStates(); // Clear stale pacing state from previous race
     this.gameState = createGameState(this.config);
 
     // Generate prime locations

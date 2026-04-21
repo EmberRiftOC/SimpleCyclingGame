@@ -4,6 +4,88 @@
 
 import type { AIBehavior, AIDecision, GameConfig, GameState, Prime, Rider } from '../types';
 
+// --- Dynamic pacing state (per rider, persisted across frames) ---
+interface AIPacingState {
+  currentModifier: number;    // Current speed modifier (-0.15 to +0.15)
+  lastChangeTime: number;     // Elapsed race time (ms) of last modifier change
+  nextChangeInterval: number; // How long until next change (ms)
+}
+
+const pacingStates = new Map<string, AIPacingState>();
+
+/** Config per AI personality */
+const PACING_CONFIG = {
+  aggressive: { maxSwing: 0.15, minInterval: 3000, maxInterval: 5000 },
+  balanced:   { maxSwing: 0.10, minInterval: 5000, maxInterval: 8000 },
+  defensive:  { maxSwing: 0.05, minInterval: 8000, maxInterval: 12000 },
+} as const;
+
+/**
+ * Update (or initialize) the dynamic pacing modifier for an AI rider.
+ * Returns the current modifier to apply to base speed.
+ */
+function updatePacingModifier(
+  rider: Rider,
+  gameState: GameState,
+  config: GameConfig,
+  behavior: AIBehavior,
+  elapsedMs: number
+): number {
+  const type = rider.type as keyof typeof PACING_CONFIG;
+  const pConfig = PACING_CONFIG[type] ?? PACING_CONFIG.balanced;
+
+  // Initialize state for new riders
+  if (!pacingStates.has(rider.id)) {
+    pacingStates.set(rider.id, {
+      currentModifier: (Math.random() * 2 - 1) * pConfig.maxSwing,
+      lastChangeTime: 0,
+      nextChangeInterval: pConfig.minInterval + Math.random() * (pConfig.maxInterval - pConfig.minInterval),
+    });
+  }
+
+  const state = pacingStates.get(rider.id)!;
+
+  // Time to pick a new modifier?
+  if (elapsedMs - state.lastChangeTime >= state.nextChangeInterval) {
+    state.currentModifier = (Math.random() * 2 - 1) * pConfig.maxSwing;
+    state.lastChangeTime = elapsedMs;
+    state.nextChangeInterval =
+      pConfig.minInterval + Math.random() * (pConfig.maxInterval - pConfig.minInterval);
+  }
+
+  // Contextual adjustments stacked on top
+  let contextualAdj = 0;
+
+  // Near a prime: surge
+  const nextPrime = gameState.race.primes.find(p => !p.claimed && p.location > rider.position);
+  if (nextPrime) {
+    const distToPrime = nextPrime.location - rider.position;
+    if (distToPrime < 100) contextualAdj += 0.12;
+  }
+
+  // Low energy: conserve
+  const energyPct = (rider.energy / rider.maxEnergy) * 100;
+  if (energyPct < 20) contextualAdj -= 0.10;
+
+  // Race position context: compare position to median of all riders
+  const positions = gameState.riders.map(r => r.position);
+  const median = positions.sort((a, b) => a - b)[Math.floor(positions.length / 2)];
+  if (rider.position < median * 0.8) {
+    contextualAdj += 0.08; // falling behind — push harder
+  } else if (rider.position > median * 1.2) {
+    contextualAdj -= 0.05; // comfortably ahead — ease off
+  }
+
+  return state.currentModifier + contextualAdj;
+}
+
+/**
+ * Clear pacing state (call when race resets)
+ */
+export function resetPacingStates(): void {
+  pacingStates.clear();
+}
+
 /**
  * Update AI rider behavior
  */
@@ -12,7 +94,7 @@ export function updateAI(rider: Rider, gameState: GameState, config: GameConfig)
   if (!behavior) return { speed: rider.speed, targetLane: rider.lane };
 
   // Decide on speed adjustment based on energy-aware pacing
-  const targetSpeed = calculateTargetSpeed(rider, gameState, config, behavior);
+  const targetSpeed = calculateTargetSpeed(rider, gameState, config, behavior, gameState.time);
 
   return {
     speed: targetSpeed,
@@ -27,11 +109,13 @@ function calculateTargetSpeed(
   rider: Rider,
   gameState: GameState,
   config: GameConfig,
-  behavior: AIBehavior
+  behavior: AIBehavior,
+  elapsedMs: number = 0
 ): number {
   const normalSpeed = config.race.defaultSpeed.mps;
   const jitter = rider.speedMultiplier ?? 1.0;
-  const baseSpeed = normalSpeed * behavior.pacing.normalSpeed * jitter;
+  const pacingModifier = updatePacingModifier(rider, gameState, config, behavior, elapsedMs);
+  const baseSpeed = normalSpeed * behavior.pacing.normalSpeed * jitter * (1 + pacingModifier);
 
   // At 0% energy: hard cap at 50% of normal speed (same rule as player)
   if (rider.energy <= 0) {
