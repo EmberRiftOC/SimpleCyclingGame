@@ -44,6 +44,7 @@ const raceConfig: RaceConfig = {
 
 const energyConfig: EnergyConfig = {
   "startingEnergy": 100,
+  "aiStartingEnergy": 150,
   "depletionFormula": {
     "baseRateReference": 0.1,      // Base rate for 10km race
     "referenceDistance": 10000,    // Reference distance in meters

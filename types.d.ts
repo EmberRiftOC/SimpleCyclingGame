@@ -82,6 +82,7 @@ export interface RaceConfig {
 
 export interface EnergyConfig {
   startingEnergy: number;
+  aiStartingEnergy: number;
   depletionFormula: {
     baseRateReference: number;
     referenceDistance: number;

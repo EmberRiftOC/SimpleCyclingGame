@@ -34,7 +34,7 @@ export function createRider(id: string, type: RiderType, lane: number, config: G
     laneProgress: 0, // 0-1, progress toward targetLane
     position: 0,
     speed: config.race.defaultSpeed.mps,
-    energy: config.energy.startingEnergy,
+    energy: type === 'player' ? config.energy.startingEnergy : config.energy.aiStartingEnergy,
     energyDrainRate: 0,
     crashed: false,
     points: 0,
