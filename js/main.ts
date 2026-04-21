@@ -177,7 +177,8 @@ function gameLoop(currentTime: number): void {
         id: r.id,
         lane: r.lane,
         x: r.position,
-        energy: Math.round((r.energy / r.maxEnergy) * 100), // normalized 0-100
+        energy: r.energy,       // absolute value (player: 0-100, AI: 0-150)
+        maxEnergy: r.maxEnergy, // ceiling for this rider
         isPlayer: r.type === 'player',
       })),
       race: {
