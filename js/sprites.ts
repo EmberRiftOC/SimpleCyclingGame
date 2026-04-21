@@ -281,11 +281,11 @@ function drawFrame(
   drawPixel(ctx, headX + 2, headY - 1, C.skinShade);
   drawPixel(ctx, headX + 1, headY - 2, '#333');
 
-  // Helmet
+  // Helmet (updated artwork from cycling_sprites2.html)
   drawLine(ctx, headX - 1, headY - 5, headX + 1, headY - 5, C.helmet);
-  drawLine(ctx, headX - 5, headY - 4, headX + 2, headY - 4, C.helmet);
-  drawLine(ctx, headX - 6, headY - 3, headX + 2, headY - 3, C.helmet);
-  drawLine(ctx, headX - 5, headY - 2, headX + 1, headY - 2, C.helmetShade);
+  drawLine(ctx, headX - 3, headY - 4, headX + 2, headY - 4, C.helmet);
+  drawLine(ctx, headX - 4, headY - 3, headX + 2, headY - 3, C.helmet);
+  drawLine(ctx, headX - 3, headY - 2, headX + 1, headY - 2, C.helmetShade);
   drawPixel(ctx, headX - 1, headY - 4, C.hair);
   drawPixel(ctx, headX + 1, headY - 4, C.hair);
   drawPixel(ctx, headX - 2, headY - 1, C.hair);
