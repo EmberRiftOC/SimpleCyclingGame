@@ -339,8 +339,12 @@ export function drawCyclist(
   color: string,
   animFrame: number,
   isPlayer: boolean = false,
-  laneScale: number = 1.0
+  laneScale: number = 1.0,
+  flashVisible: boolean = true
 ): void {
+  // Skip draw when flash effect hides the player
+  if (isPlayer && !flashVisible) return;
+
   const RENDER_SCALE = 2 * laneScale; // Scale by lane for perspective effect
   const shade = darkenColor(color, 40);
   const frames = getFrames(color, shade);
@@ -348,22 +352,7 @@ export function drawCyclist(
 
   ctx.save();
 
-  // Player glow (drawn behind sprite)
-  if (isPlayer) {
-    ctx.globalAlpha = 0.35;
-    ctx.fillStyle = '#FFD700';
-    const glowW = SPRITE_W * RENDER_SCALE + 12;
-    const glowH = SPRITE_H * RENDER_SCALE + 12;
-    ctx.fillRect(
-      x - (SPRITE_W * RENDER_SCALE) / 2 - 6,
-      y - (SPRITE_H * RENDER_SCALE) / 2 - 6,
-      glowW,
-      glowH
-    );
-    ctx.globalAlpha = 1.0;
-  }
-
-  // Draw the sprite centered on (x, y)
+  // Draw the sprite centered on (x, y) — no yellow box
   ctx.imageSmoothingEnabled = false; // Preserve pixel art sharpness
   ctx.drawImage(
     frame,

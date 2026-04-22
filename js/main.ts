@@ -6,8 +6,10 @@ import type { GameConfig } from '../types';
 import { loadConfigs, applyDifficulty, DIFFICULTY_PRESETS, type Difficulty } from './config.js';
 import { RaceManager } from './race-manager.js';
 import * as renderer from './renderer.js';
+import { setPlayerFlashVisible } from './renderer.js';
 import * as input from './input.js';
 import { Countdown } from './countdown.js';
+import { PlayerFlash } from './player-flash.js';
 
 const PHYSICS_STEP = 1000 / 60; // 60 physics updates per second
 const ASPECT_RATIO = 2; // width:height = 2:1
@@ -29,6 +31,9 @@ let raceStartTime = 0;
 // Countdown
 const countdown = new Countdown();
 let countdownOverlay: HTMLDivElement | null = null;
+
+// Player flash (identifies player sprite at race start)
+const playerFlash = new PlayerFlash();
 
 /**
  * Calculate canvas dimensions to fill the viewport while maintaining aspect ratio
@@ -218,6 +223,10 @@ function startRace(): void {
   accumulator = 0;
   raceStartTime = performance.now();
   gameRunning = true;
+
+  // Trigger 3-flash identification effect so player knows their sprite
+  playerFlash.start();
+
   requestAnimationFrame(gameLoop);
 }
 
@@ -289,6 +298,10 @@ function gameLoop(currentTime: number): void {
       },
     };
   }
+
+  // Tick player flash and push visibility to renderer
+  playerFlash.update(deltaTime);
+  setPlayerFlashVisible(playerFlash.isVisible);
 
   const renderConfigs = {
     race: rm.config.race,
@@ -378,6 +391,8 @@ function handleRaceEnd(raceTimeMs: number): void {
     gameRunning = false;
     raceManager = null;
     countdown.reset();
+    playerFlash.reset();
+    setPlayerFlashVisible(true);
     beginCountdown();
   });
 }

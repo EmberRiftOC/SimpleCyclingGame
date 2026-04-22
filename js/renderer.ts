@@ -22,6 +22,13 @@ type LayerKey = keyof CanvasLayer;
 
 type RenderConfig = Pick<GameConfig, 'race' | 'prime' | 'drafting'>;
 
+/** Set by main.ts each frame to control player flash visibility */
+let playerFlashVisible = true;
+
+export function setPlayerFlashVisible(visible: boolean): void {
+  playerFlashVisible = visible;
+}
+
 let canvases: CanvasLayer = {
   background: null,
   rider: null,
@@ -212,7 +219,8 @@ function renderRiders(gameState: GameState, config: RenderConfig): void {
     }
 
     // Draw cyclist sprite with perspective scale (on top of bow shock)
-    drawCyclist(ctx, x, y, color, animFrame, isPlayer, laneScale);
+    const flashVisible = isPlayer ? playerFlashVisible : true;
+    drawCyclist(ctx, x, y, color, animFrame, isPlayer, laneScale, flashVisible);
 
     // Draw draft indicator if applicable
     renderDraftIndicator(ctx, rider, gameState, config, x, y);
