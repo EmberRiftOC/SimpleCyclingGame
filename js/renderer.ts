@@ -384,7 +384,7 @@ function renderEnergyDrainRate(
 
   ctx.fillStyle = color;
   ctx.font = `bold ${Math.round(18 * s)}px monospace`;
-  const label = drainRate > 1.0 ? `DRAIN: ${Math.round(drainPercent)}% ⚡` : `DRAIN: ${Math.round(drainPercent)}%`;
+  const label = drainRate > 2.7 ? `DRAIN: ${Math.round(drainPercent)}% ⚡` : `DRAIN: ${Math.round(drainPercent)}%`;
   ctx.fillText(label, x, y);
 }
 

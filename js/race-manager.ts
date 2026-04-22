@@ -113,9 +113,10 @@ export class RaceManager {
       const energyLost = previousEnergy - rider.energy;
       rider.energyDrainRate = energyLost / (deltaTime / 1000);
 
-      // Set flash warning if player drain exceeds 100%/s
+      // Set flash warning if player drain exceeds 90% of normalized scale
+      // maxDrainRate = 3.0, so 90% = 2.7%/s
       if (rider.type === 'player') {
-        this.gameState.flashWarning = rider.energyDrainRate > 1.0;
+        this.gameState.flashWarning = rider.energyDrainRate > 2.7;
       }
 
       // Apply zero energy penalty
