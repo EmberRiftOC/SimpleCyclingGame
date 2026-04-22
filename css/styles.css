@@ -81,6 +81,53 @@ canvas {
   margin-bottom: 2em;
 }
 
+/* ── Difficulty selector ── */
+
+.splash-difficulty {
+  display: flex;
+  gap: 0.75em;
+  justify-content: center;
+  margin-bottom: 2em;
+}
+
+.diff-btn {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(0.7rem, 1.5vw, 0.85rem);
+  font-weight: bold;
+  letter-spacing: 0.15em;
+  padding: 0.4em 1.2em;
+  border: 2px solid #2a2a5a;
+  background: transparent;
+  color: #6666aa;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+  text-transform: uppercase;
+}
+
+.diff-btn:hover {
+  border-color: #00ffff;
+  color: #00ffff;
+}
+
+.diff-btn--selected[data-diff="easy"] {
+  border-color: #00ff41;
+  color: #00ff41;
+  box-shadow: 0 0 12px rgba(0, 255, 65, 0.3);
+}
+
+.diff-btn--selected[data-diff="medium"] {
+  border-color: #ffea00;
+  color: #ffea00;
+  box-shadow: 0 0 12px rgba(255, 234, 0, 0.3);
+}
+
+.diff-btn--selected[data-diff="hard"] {
+  border-color: #ff0051;
+  color: #ff0051;
+  box-shadow: 0 0 12px rgba(255, 0, 81, 0.3);
+}
+
 .splash-controls {
   font-size: clamp(0.7rem, 1.5vw, 0.85rem);
   color: #6666aa;

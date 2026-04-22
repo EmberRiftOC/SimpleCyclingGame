@@ -3,7 +3,7 @@
  */
 
 import type { GameConfig } from '../types';
-import { loadConfigs } from './config.js';
+import { loadConfigs, applyDifficulty, DIFFICULTY_PRESETS, type Difficulty } from './config.js';
 import { RaceManager } from './race-manager.js';
 import * as renderer from './renderer.js';
 import * as input from './input.js';
@@ -18,6 +18,7 @@ const DEBUG_ENABLED = _debugParam === DEBUG_TOKEN;
 
 let raceManager: RaceManager | null = null;
 let configs: GameConfig;
+let selectedDifficulty: Difficulty = 'medium';
 let lastTime = 0;
 let accumulator = 0;
 let gameRunning = false;
@@ -94,6 +95,12 @@ function showSplashScreen(): void {
     <div class="splash-inner">
       <div class="splash-title">BREAKAWAY</div>
 
+      <div class="splash-difficulty">
+        <button class="diff-btn" data-diff="easy">EASY</button>
+        <button class="diff-btn diff-btn--selected" data-diff="medium">MEDIUM</button>
+        <button class="diff-btn" data-diff="hard">HARD</button>
+      </div>
+
       <div class="splash-controls">
         <div>← → &nbsp; Speed</div>
         <div>↑ ↓ &nbsp; Change Lane</div>
@@ -103,6 +110,15 @@ function showSplashScreen(): void {
     </div>
   `;
   document.body.appendChild(splash);
+
+  // Difficulty button selection
+  splash.querySelectorAll('.diff-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      splash.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('diff-btn--selected'));
+      btn.classList.add('diff-btn--selected');
+      selectedDifficulty = (btn as HTMLElement).dataset.diff as Difficulty;
+    });
+  });
 
   document.getElementById('start-btn')!.addEventListener('click', () => {
     splash.style.opacity = '0';
@@ -119,7 +135,8 @@ function showSplashScreen(): void {
  */
 function startRace(): void {
   raceStarted = true; // Guard: confirms START was clicked
-  raceManager = new RaceManager(configs);
+  const difficultyConfigs = applyDifficulty(configs, selectedDifficulty);
+  raceManager = new RaceManager(difficultyConfigs);
   raceManager.initializeRace();
   lastTime = performance.now(); // Must match rAF clock to avoid catch-up burst
   accumulator = 0;

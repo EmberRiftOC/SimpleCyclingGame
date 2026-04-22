@@ -180,6 +180,30 @@ const primeConfig: PrimeConfig = {
   }
 };
 
+// Difficulty presets - multipliers applied to AI speed/acceleration
+export const DIFFICULTY_PRESETS = {
+  easy: {
+    label: 'EASY',
+    normalSpeedMult: 0.55,
+    sprintSpeedMult: 0.55,
+    accelerationMult: 0.55
+  },
+  medium: {
+    label: 'MEDIUM',
+    normalSpeedMult: 0.75,
+    sprintSpeedMult: 0.75,
+    accelerationMult: 0.75
+  },
+  hard: {
+    label: 'HARD',
+    normalSpeedMult: 1.0,
+    sprintSpeedMult: 1.0,
+    accelerationMult: 1.0
+  }
+} as const;
+
+export type Difficulty = keyof typeof DIFFICULTY_PRESETS;
+
 let configs: GameConfig = {
   race: raceConfig,
   energy: energyConfig,
@@ -193,6 +217,26 @@ let configs: GameConfig = {
  */
 export async function loadConfigs(): Promise<GameConfig> {
   return configs;
+}
+
+/**
+ * Apply difficulty preset to a config - scales AI speed/acceleration
+ */
+export function applyDifficulty(baseConfig: GameConfig, difficulty: Difficulty): GameConfig {
+  const preset = DIFFICULTY_PRESETS[difficulty];
+  const { normalSpeedMult, sprintSpeedMult, accelerationMult } = preset;
+
+  // Deep clone so we don't mutate the base config
+  const cfg: GameConfig = JSON.parse(JSON.stringify(baseConfig));
+
+  const types = ['aggressive', 'balanced', 'defensive'] as const;
+  for (const type of types) {
+    cfg.ai[type].pacing.normalSpeed *= normalSpeedMult;
+    cfg.ai[type].pacing.sprintSpeed *= sprintSpeedMult;
+    cfg.ai[type].acceleration *= accelerationMult;
+  }
+
+  return cfg;
 }
 
 /**
