@@ -7,6 +7,7 @@ import { loadConfigs, applyDifficulty, DIFFICULTY_PRESETS, type Difficulty } fro
 import { RaceManager } from './race-manager.js';
 import * as renderer from './renderer.js';
 import * as input from './input.js';
+import { Countdown } from './countdown.js';
 
 const PHYSICS_STEP = 1000 / 60; // 60 physics updates per second
 const ASPECT_RATIO = 2; // width:height = 2:1
@@ -22,8 +23,12 @@ let selectedDifficulty: Difficulty = 'medium';
 let lastTime = 0;
 let accumulator = 0;
 let gameRunning = false;
-let raceStarted = false; // Set true only on START button click
+let raceStarted = false; // Set true only after countdown finishes
 let raceStartTime = 0;
+
+// Countdown
+const countdown = new Countdown();
+let countdownOverlay: HTMLDivElement | null = null;
 
 /**
  * Calculate canvas dimensions to fill the viewport while maintaining aspect ratio
@@ -125,19 +130,90 @@ function showSplashScreen(): void {
     splash.style.transition = 'opacity 0.4s ease';
     setTimeout(() => {
       splash.remove();
-      startRace();
+      beginCountdown();
     }, 400);
   });
+}
+
+/**
+ * Show countdown overlay, render cyclists at start, then start race
+ */
+function beginCountdown(): void {
+  // Initialize race manager and render the starting grid — but don't advance physics yet
+  const difficultyConfigs = applyDifficulty(configs, selectedDifficulty);
+  raceManager = new RaceManager(difficultyConfigs);
+  raceManager.initializeRace();
+
+  // Render one frame so cyclists are visible at start line
+  const gameState = raceManager.getState();
+  const renderConfigs = {
+    race: raceManager.config.race,
+    prime: raceManager.config.prime,
+    drafting: raceManager.config.drafting,
+  };
+  renderer.render(gameState, renderConfigs);
+
+  // Build countdown overlay
+  countdownOverlay = document.createElement('div');
+  countdownOverlay.id = 'countdown-overlay';
+  countdownOverlay.setAttribute('aria-live', 'assertive');
+  countdownOverlay.setAttribute('aria-atomic', 'true');
+  updateCountdownOverlay();
+  document.body.appendChild(countdownOverlay);
+
+  // Block input during countdown
+  input.resetInputState();
+
+  // Kick off countdown loop
+  countdown.start();
+  lastTime = performance.now();
+  requestAnimationFrame(countdownLoop);
+}
+
+/** Update the countdown overlay text */
+function updateCountdownOverlay(): void {
+  if (!countdownOverlay) return;
+  const text = countdown.getText();
+  const isGo = text === 'GO!';
+  countdownOverlay.textContent = text;
+  countdownOverlay.className = isGo ? 'countdown-go' : '';
+}
+
+/**
+ * Animation loop that runs only during countdown phase
+ */
+function countdownLoop(currentTime: number): void {
+  const deltaTime = Math.min(currentTime - lastTime, 100);
+  lastTime = currentTime;
+
+  countdown.update(deltaTime);
+  updateCountdownOverlay();
+
+  if (countdown.isFinished) {
+    // Remove overlay and start race
+    if (countdownOverlay) {
+      countdownOverlay.remove();
+      countdownOverlay = null;
+    }
+    startRace();
+    return;
+  }
+
+  requestAnimationFrame(countdownLoop);
 }
 
 /**
  * Start a new race
  */
 function startRace(): void {
-  raceStarted = true; // Guard: confirms START was clicked
-  const difficultyConfigs = applyDifficulty(configs, selectedDifficulty);
-  raceManager = new RaceManager(difficultyConfigs);
-  raceManager.initializeRace();
+  raceStarted = true; // Guard: confirms countdown has finished
+  // raceManager is already initialized in beginCountdown() — just start the loop
+  if (!raceManager) {
+    // Fallback: shouldn't normally happen, but guard against it
+    const difficultyConfigs = applyDifficulty(configs, selectedDifficulty);
+    raceManager = new RaceManager(difficultyConfigs);
+    raceManager.initializeRace();
+  }
   lastTime = performance.now(); // Must match rAF clock to avoid catch-up burst
   accumulator = 0;
   raceStartTime = performance.now();
@@ -298,7 +374,11 @@ function handleRaceEnd(raceTimeMs: number): void {
 
   document.getElementById('race-again-btn')!.addEventListener('click', () => {
     finish.remove();
-    startRace();
+    raceStarted = false;
+    gameRunning = false;
+    raceManager = null;
+    countdown.reset();
+    beginCountdown();
   });
 }
 
