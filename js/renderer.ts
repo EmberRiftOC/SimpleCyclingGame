@@ -3,7 +3,7 @@
  */
 
 import type { GameConfig, GameState, Rider } from '../types';
-import { drawCyclist, getAnimationFrame } from './sprites.js';
+import { drawCyclist, getAnimationFrame, drawBowShock, getBowShockFrame } from './sprites.js';
 import { NeonCityBackground } from './NeonCityBackground.js';
 
 interface CanvasLayer {
@@ -205,7 +205,13 @@ function renderRiders(gameState: GameState, config: RenderConfig): void {
     const isPlayer = rider.type === 'player';
     const color = getRiderColor(rider, config);
 
-    // Draw cyclist sprite with perspective scale
+    // Draw bow shock in front of rider if they have a drafting advantage
+    if (rider.isDrafting) {
+      const bowFrame = getBowShockFrame(gameState.time);
+      drawBowShock(ctx, x, y, bowFrame, laneScale);
+    }
+
+    // Draw cyclist sprite with perspective scale (on top of bow shock)
     drawCyclist(ctx, x, y, color, animFrame, isPlayer, laneScale);
 
     // Draw draft indicator if applicable

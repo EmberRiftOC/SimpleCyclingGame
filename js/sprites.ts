@@ -376,6 +376,107 @@ export function drawCyclist(
   ctx.restore();
 }
 
+const NUM_BOW_FRAMES = 12;
+
+/**
+ * Draw the bow shock overlay in front of a drafting rider.
+ * The bow shock is drawn at the FRONT of the rider (right side in screen space).
+ * @param overlayFrame - animation frame 0–11
+ * @param laneScale - same perspective scale as the rider sprite
+ */
+export function drawBowShock(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  overlayFrame: number,
+  laneScale: number = 1.0
+): void {
+  const RENDER_SCALE = 2 * laneScale;
+  const offscreen = document.createElement('canvas');
+  offscreen.width = SPRITE_W;
+  offscreen.height = SPRITE_H;
+  const oc = offscreen.getContext('2d')!;
+
+  const frame = overlayFrame % NUM_BOW_FRAMES;
+  const u = frame / NUM_BOW_FRAMES;
+  const pulseU = (u * 2) % 1;
+  const sparkU = (u * 3) % 1;
+  const pulse = 0.5 + 0.5 * Math.sin(pulseU * Math.PI * 2);
+
+  // Draw pixel helper
+  const px = (px: number, py: number, color: string, alpha: number) => {
+    if (px < 0 || px >= SPRITE_W || py < 0 || py >= SPRITE_H) return;
+    oc.globalAlpha = alpha;
+    oc.fillStyle = color;
+    oc.fillRect(px, py, 1, 1);
+    oc.globalAlpha = 1;
+  };
+
+  const cx = 38, cy = 28;
+
+  // Inner arc
+  const innerRx = 8, innerRy = 13;
+  for (let a = -Math.PI / 2.1; a <= Math.PI / 2.1; a += 0.06) {
+    px(Math.round(cx + innerRx * Math.cos(a)), Math.round(cy + innerRy * Math.sin(a)), '#4ea3ff', 1);
+  }
+
+  // Outer arc (pulsing)
+  const outerRx = 10 + Math.floor(pulse * 1.5);
+  const outerRy = 15;
+  for (let a = -Math.PI / 2.3; a <= Math.PI / 2.3; a += 0.08) {
+    px(Math.round(cx + outerRx * Math.cos(a)), Math.round(cy + outerRy * Math.sin(a)), '#2d6bd4', 0.8);
+  }
+
+  // Radiating sparks
+  const sparkAngles = [-0.9, -0.4, 0, 0.4, 0.9];
+  sparkAngles.forEach((baseA, i) => {
+    const sparkOffset = (sparkU + i * 0.17) % 1;
+    const dist = 10 + sparkOffset * 5;
+    const sx = Math.round(cx + dist * Math.cos(baseA));
+    const sy = Math.round(cy + dist * Math.sin(baseA) * 1.4);
+    const sx2 = Math.round(cx + (dist - 1.5) * Math.cos(baseA));
+    const sy2 = Math.round(cy + (dist - 1.5) * Math.sin(baseA) * 1.4);
+    const alpha = (1 - sparkOffset) * 0.9;
+    px(sx, sy, '#a8d8ff', alpha);
+    px(sx2, sy2, '#4ea3ff', alpha * 0.8);
+  });
+
+  // Trail haze drift
+  const driftStep = frame % 6;
+  for (let i = 0; i < 4; i++) {
+    const hx = Math.round(32 - driftStep - i * 4);
+    if (hx > 1) {
+      const hy = 28 + (i % 2 === 0 ? -1 : 1);
+      px(hx, hy, '#2d6bd4', 0.5);
+    }
+  }
+
+  // Impact core flash
+  if (Math.floor(frame / 2) % 2 === 0) {
+    px(cx + innerRx, cy, '#ffffff', 1);
+    px(cx + innerRx + 1, cy, '#a8d8ff', 0.9);
+  }
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  // Position the bow shock in front of the rider (to the right)
+  ctx.drawImage(
+    offscreen,
+    x - (SPRITE_W * RENDER_SCALE) / 2,
+    y - (SPRITE_H * RENDER_SCALE) / 2,
+    SPRITE_W * RENDER_SCALE,
+    SPRITE_H * RENDER_SCALE
+  );
+  ctx.restore();
+}
+
+/**
+ * Get bow shock animation frame (0–11)
+ */
+export function getBowShockFrame(time: number): number {
+  return Math.floor((time / 1000) * 12) % NUM_BOW_FRAMES;
+}
+
 /**
  * Calculate animation frame based on energy drain rate.
  * Higher drain = faster pedaling. Returns 0–5 (6-frame cycle).
