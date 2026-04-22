@@ -84,6 +84,7 @@ export interface RaceConfig {
 
 export interface EnergyConfig {
   startingEnergy: number;
+  aiStartingEnergy?: number; // Overridden by difficulty preset
   aiStartingEnergy: number;
   depletionFormula: {
     baseRateReference: number;
