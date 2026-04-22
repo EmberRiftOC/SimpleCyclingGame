@@ -276,12 +276,15 @@ function renderHUD(gameState: GameState, config: RenderConfig): void {
 
   let currentY = hudStartY;
 
+  // Flash warning: when drain >100%/s, pulse the energy bar every 200ms
+  const flashOn = gameState.flashWarning && (Math.floor(gameState.time / 200) % 2 === 0);
+
   // Energy bar (takes 2 lines worth of space)
-  renderEnergyBar(ctx, player, hudX, currentY, s);
+  renderEnergyBar(ctx, player, hudX, currentY, s, flashOn);
   currentY += Math.round(60 * s); // Energy bar height + spacing
 
   // Energy drain percentage
-  renderEnergyDrainRate(ctx, player, hudX, currentY, s);
+  renderEnergyDrainRate(ctx, player, hudX, currentY, s, flashOn);
   currentY += lineSpacing;
 
   // Speed display
@@ -313,7 +316,8 @@ function renderEnergyBar(
   player: Rider,
   x: number,
   y: number,
-  s: number = 1
+  s: number = 1,
+  flashOn: boolean = false
 ): void {
   const width = Math.round(250 * s);
   const height = Math.round(35 * s);
@@ -328,9 +332,9 @@ function renderEnergyBar(
   ctx.fillStyle = getEnergyColor(player.energy);
   ctx.fillRect(x, y, energyWidth, height);
 
-  // Border - retro cyan
-  ctx.strokeStyle = '#00ffff';
-  ctx.lineWidth = Math.max(1, Math.round(3 * s));
+  // Border - flashes hot orange when drain > 100%
+  ctx.strokeStyle = flashOn ? '#ff6600' : '#00ffff';
+  ctx.lineWidth = Math.max(1, Math.round((flashOn ? 5 : 3) * s));
   ctx.strokeRect(x, y, width, height);
 
   // Text with black outline for visibility
@@ -366,7 +370,8 @@ function renderEnergyDrainRate(
   player: Rider,
   x: number,
   y: number,
-  s: number = 1
+  s: number = 1,
+  flashOn: boolean = false
 ): void {
   const drainRate = player.energyDrainRate || 0;
   const maxDrainRate = 3.0;
@@ -375,10 +380,12 @@ function renderEnergyDrainRate(
   let color = '#00ff41';
   if (drainPercent > 40) color = '#ffea00';
   if (drainPercent > 70) color = '#ff0051';
+  if (flashOn) color = '#ff6600'; // Override to orange flash when critical
 
   ctx.fillStyle = color;
   ctx.font = `bold ${Math.round(18 * s)}px monospace`;
-  ctx.fillText(`DRAIN: ${Math.round(drainPercent)}%`, x, y);
+  const label = drainRate > 1.0 ? `DRAIN: ${Math.round(drainPercent)}% ⚡` : `DRAIN: ${Math.round(drainPercent)}%`;
+  ctx.fillText(label, x, y);
 }
 
 /**

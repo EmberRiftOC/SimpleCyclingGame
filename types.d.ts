@@ -20,8 +20,12 @@ export interface Rider {
   finishPosition: number | null;
   coasting: boolean;
   coastDistance: number;
-  speedMultiplier?: number; // Per-rider speed jitter for variability
-  isDrafting?: boolean;       // True when actively in a draft zone
+  speedMultiplier?: number;   // Per-rider speed jitter for variability
+  isDrafting?: boolean;        // True when actively in a draft zone
+  // Dynamic pacing state
+  pacingModifier?: number;     // Current dynamic speed modifier
+  lastPacingChange?: number;   // Timestamp of last pacing change (ms)
+  pacingInterval?: number;     // How often to change pacing (ms)
 }
 
 // Prime sprint
@@ -34,6 +38,7 @@ export interface Prime {
 // Game state
 export interface GameState {
   riders: Rider[];
+  flashWarning?: boolean; // True when player drain >100% - for HUD flash
   race: {
     totalDistance: number;
     primes: Prime[];

@@ -113,6 +113,11 @@ export class RaceManager {
       const energyLost = previousEnergy - rider.energy;
       rider.energyDrainRate = energyLost / (deltaTime / 1000);
 
+      // Set flash warning if player drain exceeds 100%/s
+      if (rider.type === 'player') {
+        this.gameState.flashWarning = rider.energyDrainRate > 1.0;
+      }
+
       // Apply zero energy penalty
       if (rider.energy === 0) {
         const normalSpeed = this.config.race.defaultSpeed.mps;
@@ -185,13 +190,12 @@ export class RaceManager {
     if (!player || player.finished) return;
 
     const normalSpeed = this.config.race.defaultSpeed.mps;
-    const maxSpeed = normalSpeed * this.config.race.playerControls.maxSpeedMultiplier;
     const minSpeed = normalSpeed * this.config.race.playerControls.minSpeedMultiplier;
     const acceleration = this.config.race.playerControls.acceleration;
 
-    // Smooth speed adjustment
+    // No upper speed cap - player can go as fast as they want (at exponential energy cost)
     if (commands.speedChange === 'increase') {
-      player.speed = Math.min(maxSpeed, player.speed + acceleration * (deltaTime / 1000));
+      player.speed = player.speed + acceleration * (deltaTime / 1000);
     }
     if (commands.speedChange === 'decrease') {
       player.speed = Math.max(minSpeed, player.speed - acceleration * (deltaTime / 1000));
