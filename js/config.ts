@@ -186,19 +186,22 @@ export const DIFFICULTY_PRESETS = {
     label: 'EASY',
     normalSpeedMult: 0.55,
     sprintSpeedMult: 0.55,
-    accelerationMult: 0.55
+    accelerationMult: 0.55,
+    aiStartingEnergy: 100
   },
   medium: {
     label: 'MEDIUM',
     normalSpeedMult: 0.75,
     sprintSpeedMult: 0.75,
-    accelerationMult: 0.75
+    accelerationMult: 0.75,
+    aiStartingEnergy: 125
   },
   hard: {
     label: 'HARD',
     normalSpeedMult: 1.0,
     sprintSpeedMult: 1.0,
-    accelerationMult: 1.0
+    accelerationMult: 1.0,
+    aiStartingEnergy: 150
   }
 } as const;
 
@@ -235,6 +238,9 @@ export function applyDifficulty(baseConfig: GameConfig, difficulty: Difficulty):
     cfg.ai[type].pacing.sprintSpeed *= sprintSpeedMult;
     cfg.ai[type].acceleration *= accelerationMult;
   }
+
+  // Set AI starting energy for this difficulty
+  cfg.energy.aiStartingEnergy = preset.aiStartingEnergy;
 
   return cfg;
 }
