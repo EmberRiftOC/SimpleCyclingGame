@@ -286,6 +286,7 @@ function gameLoop(currentTime: number): void {
      * window.debugTriggerCrash(knockbackMetres = 4)
      * Instantly knock the player back, simulating a collision.
      * Triggers the crash-camera pan so it can be observed/tested.
+     * NOTE: knockback only (penalty), no position advantage possible.
      */
     (window as any).debugTriggerCrash = (knockbackMetres: number = 4) => {
       if (!player || player.finished) return;
@@ -294,21 +295,6 @@ function gameLoop(currentTime: number): void {
       camera.onPlayerCrash(player.position);
       setTimeout(() => { player.crashed = false; }, 1000);
       console.debug('[debug] crash triggered — player at', player.position);
-    };
-
-    /**
-     * window.debugSetPlayerPosition(metres)
-     * Teleport the player to any position along the course.
-     * Useful for placing the player alongside an AI rider for collision testing.
-     * Camera snaps to the new position (no pan).
-     */
-    (window as any).debugSetPlayerPosition = (metres: number) => {
-      if (!player || player.finished) return;
-      const clamped = Math.max(0, Math.min(metres, gameState.race.totalDistance));
-      player.position = clamped;
-      camera.reset(clamped);
-      setCameraPosition(clamped);
-      console.debug('[debug] player teleported to', clamped);
     };
 
     (window as any).gameDebug = {
