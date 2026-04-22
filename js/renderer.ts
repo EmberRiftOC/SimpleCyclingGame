@@ -29,6 +29,17 @@ export function setPlayerFlashVisible(visible: boolean): void {
   playerFlashVisible = visible;
 }
 
+/**
+ * Camera position override (metres along course).
+ * When set, the viewport origin uses this value instead of tracking the player directly.
+ * Set to null to revert to direct player tracking (e.g. during countdown).
+ */
+let cameraPosition: number | null = null;
+
+export function setCameraPosition(pos: number | null): void {
+  cameraPosition = pos;
+}
+
 let canvases: CanvasLayer = {
   background: null,
   rider: null,
@@ -125,8 +136,11 @@ function renderRiders(gameState: GameState, config: RenderConfig): void {
   const viewportRange = config.race.viewport.rangeBikeLengths * bikeLengthMeters;
   const playerViewportCenter = canvas.width * config.race.viewport.playerPositionPercent;
 
+  // Use controlled camera position when set (crash pan), otherwise track player directly
+  const trackPos = cameraPosition !== null ? cameraPosition : player.position;
+
   // Calculate visible range (meters)
-  const viewStart = player.position - (playerViewportCenter / canvas.width) * viewportRange;
+  const viewStart = trackPos - (playerViewportCenter / canvas.width) * viewportRange;
   const viewEnd = viewStart + viewportRange;
 
   const laneCount = config.race.lanes.total;

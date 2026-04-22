@@ -6,10 +6,11 @@ import type { GameConfig } from '../types';
 import { loadConfigs, applyDifficulty, DIFFICULTY_PRESETS, type Difficulty } from './config.js';
 import { RaceManager } from './race-manager.js';
 import * as renderer from './renderer.js';
-import { setPlayerFlashVisible } from './renderer.js';
+import { setPlayerFlashVisible, setCameraPosition } from './renderer.js';
 import * as input from './input.js';
 import { Countdown } from './countdown.js';
 import { PlayerFlash } from './player-flash.js';
+import { CameraController } from './camera.js';
 
 const PHYSICS_STEP = 1000 / 60; // 60 physics updates per second
 const ASPECT_RATIO = 2; // width:height = 2:1
@@ -34,6 +35,10 @@ let countdownOverlay: HTMLDivElement | null = null;
 
 // Player flash (identifies player sprite at race start)
 const playerFlash = new PlayerFlash();
+
+// Camera controller (handles crash-pan smoothing)
+const camera = new CameraController();
+let prevPlayerCrashed = false; // edge-detect crash flag
 
 /**
  * Calculate canvas dimensions to fill the viewport while maintaining aspect ratio
@@ -168,6 +173,8 @@ function beginCountdown(): void {
 
   // Block input during countdown
   input.resetInputState();
+  // Ensure camera isn't influencing renderer during countdown
+  setCameraPosition(null);
 
   // Kick off countdown loop
   countdown.start();
@@ -226,6 +233,14 @@ function startRace(): void {
 
   // Trigger 3-flash identification effect so player knows their sprite
   playerFlash.start();
+
+  // Reset camera to player's starting position
+  if (raceManager) {
+    const initState = raceManager.getState();
+    const initPlayer = initState.riders.find(r => r.type === 'player');
+    camera.reset(initPlayer?.position ?? 0);
+  }
+  prevPlayerCrashed = false;
 
   requestAnimationFrame(gameLoop);
 }
@@ -302,6 +317,18 @@ function gameLoop(currentTime: number): void {
   // Tick player flash and push visibility to renderer
   playerFlash.update(deltaTime);
   setPlayerFlashVisible(playerFlash.isVisible);
+
+  // Camera: detect crash edge and tick
+  const player = gameState.riders.find(r => r.type === 'player');
+  if (player) {
+    const justCrashed = player.crashed && !prevPlayerCrashed;
+    if (justCrashed) {
+      camera.onPlayerCrash(player.position);
+    }
+    prevPlayerCrashed = player.crashed;
+    camera.update(deltaTime, player.position);
+    setCameraPosition(camera.position);
+  }
 
   const renderConfigs = {
     race: rm.config.race,
@@ -393,6 +420,9 @@ function handleRaceEnd(raceTimeMs: number): void {
     countdown.reset();
     playerFlash.reset();
     setPlayerFlashVisible(true);
+    camera.reset();
+    setCameraPosition(null);
+    prevPlayerCrashed = false;
     beginCountdown();
   });
 }
