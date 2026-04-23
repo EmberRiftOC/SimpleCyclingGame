@@ -20,14 +20,14 @@ describe('ArrowIndicator', () => {
 
   describe('start()', () => {
     test('makes arrow visible', () => {
-      arrow.start();
+      arrow.start(0);
       expect(arrow.visible).toBe(true);
     });
 
     test('resets elapsed to 0', () => {
-      arrow.start();
+      arrow.start(0);
       arrow.update(1000);
-      arrow.start();
+      arrow.start(1000); // restart at game time 1000
       expect(arrow.elapsed).toBe(0);
     });
   });
@@ -39,36 +39,36 @@ describe('ArrowIndicator', () => {
       expect(arrow.visible).toBe(false);
     });
 
-    test('accumulates elapsed time', () => {
-      arrow.start();
-      arrow.update(500);
+    test('tracks elapsed from start time', () => {
+      arrow.start(500); // started at game time 500
+      arrow.update(1000); // game time is now 1000
       expect(arrow.elapsed).toBe(500);
     });
 
-    test('hides after 3 seconds', () => {
-      arrow.start();
+    test('hides after 3 seconds of game time', () => {
+      arrow.start(0);
       arrow.update(3000);
       expect(arrow.visible).toBe(false);
     });
 
     test('still visible just before 3 seconds', () => {
-      arrow.start();
+      arrow.start(0);
       arrow.update(2999);
       expect(arrow.visible).toBe(true);
     });
 
-    test('accumulates time across multiple calls', () => {
-      arrow.start();
-      arrow.update(1000);
-      arrow.update(1000);
-      arrow.update(1000);
+    test('handles non-zero start time correctly', () => {
+      arrow.start(1000); // start at game time 1000
+      arrow.update(3999); // 2999ms elapsed - still visible
+      expect(arrow.visible).toBe(true);
+      arrow.update(4000); // 3000ms elapsed - should hide
       expect(arrow.visible).toBe(false);
     });
 
     test('does not update elapsed after hiding', () => {
-      arrow.start();
+      arrow.start(0);
       arrow.update(3000);
-      arrow.update(1000);
+      arrow.update(5000);
       expect(arrow.elapsed).toBe(3000);
     });
   });

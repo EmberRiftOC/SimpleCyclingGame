@@ -231,8 +231,9 @@ function startRace(): void {
   raceStartTime = performance.now();
   gameRunning = true;
 
-  // Show pulsing arrow above player for first 3 seconds
-  arrowIndicator.start();
+  // Show pulsing arrow above player for first 3 seconds of game time
+  // Pass gameState.time=0 at race start (clock is reset by initializeRace)
+  arrowIndicator.start(0);
 
   // Reset camera to player's starting position
   if (raceManager) {
@@ -330,8 +331,8 @@ function gameLoop(currentTime: number): void {
     };
   }
 
-  // Tick arrow indicator and push state to renderer
-  arrowIndicator.update(deltaTime);
+  // Tick arrow indicator off the authoritative game clock
+  arrowIndicator.update(gameState.time);
   setArrowState({ visible: arrowIndicator.visible, pulse: arrowIndicator.getPulse() });
   // Player sprite always fully visible (no flash)
   setPlayerFlashVisible(true);

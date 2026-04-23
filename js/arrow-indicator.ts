@@ -4,42 +4,54 @@
  * Appears at race start, pulses for 3 seconds, then disappears.
  * Replaces the sprite-flash identification mechanic from task-018.
  *
- * Rendering is handled by the renderer (this class only manages state/timing).
+ * Timing is driven by the caller passing the authoritative game clock
+ * (gameState.time) via setGameTime() each frame, rather than accumulating
+ * a local delta. This avoids any drift between render-frame deltas and the
+ * physics clock.
  */
 
-/** How long the arrow is visible (ms) */
-const DURATION_MS = 3000;
+/** How long the arrow is visible (ms of game time) */
+export const DURATION_MS = 3000;
 
 /** Pulse cycle duration (ms) — one full sine wave */
-const PULSE_CYCLE_MS = 600;
+export const PULSE_CYCLE_MS = 600;
 
 export class ArrowIndicator {
   /** Whether the arrow should be drawn this frame */
   visible = false;
 
-  /** Time elapsed since arrow appeared (ms) */
+  /** Game-clock time when arrow was started (ms) — set by start() */
+  private startTime = 0;
+
+  /** Current game-clock elapsed since start (ms) */
   elapsed = 0;
 
-  /** Start the arrow at race start */
-  start(): void {
+  /**
+   * Start the arrow. Call once when the race begins.
+   * @param gameTime  Current gameState.time (ms)
+   */
+  start(gameTime = 0): void {
     this.visible = true;
+    this.startTime = gameTime;
     this.elapsed = 0;
   }
 
   /** Reset to idle (new race / Race Again) */
   reset(): void {
     this.visible = false;
+    this.startTime = 0;
     this.elapsed = 0;
   }
 
   /**
-   * Advance arrow by deltaTime (ms).
-   * Hides automatically after DURATION_MS.
+   * Update arrow state from the authoritative game clock.
+   * Call once per frame while the race is running.
+   * @param gameTime  Current gameState.time (ms)
    */
-  update(deltaTime: number): void {
+  update(gameTime: number): void {
     if (!this.visible) return;
 
-    this.elapsed += deltaTime;
+    this.elapsed = gameTime - this.startTime;
     if (this.elapsed >= DURATION_MS) {
       this.elapsed = DURATION_MS; // clamp
       this.visible = false;
