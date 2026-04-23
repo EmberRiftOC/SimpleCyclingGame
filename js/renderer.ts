@@ -40,6 +40,18 @@ export function setCameraPosition(pos: number | null): void {
   cameraPosition = pos;
 }
 
+/** Arrow indicator state pushed from main each frame */
+interface ArrowState {
+  visible: boolean;
+  pulse: number; // 0–1
+}
+
+let arrowState: ArrowState = { visible: false, pulse: 0 };
+
+export function setArrowState(state: ArrowState): void {
+  arrowState = state;
+}
+
 let canvases: CanvasLayer = {
   background: null,
   rider: null,
@@ -236,6 +248,11 @@ function renderRiders(gameState: GameState, config: RenderConfig): void {
     const flashVisible = isPlayer ? playerFlashVisible : true;
     drawCyclist(ctx, x, y, color, animFrame, isPlayer, laneScale, flashVisible);
 
+    // Draw arrow indicator above player if active
+    if (isPlayer && arrowState.visible) {
+      renderArrowIndicator(ctx, x, y, laneScale, arrowState.pulse);
+    }
+
     // Draw draft indicator if applicable
     renderDraftIndicator(ctx, rider, gameState, config, x, y);
   }
@@ -266,6 +283,55 @@ function getRiderColor(rider: Rider, config: RenderConfig): string {
   }
   const aiColors = config.race.riders.aiColors as Record<string, string>;
   return aiColors[rider.type] ?? '#CCCCCC';
+}
+
+/**
+ * Render pulsing pixelated downward-pointing arrow above the player sprite.
+ * Arrow is drawn as two stacked chevron "V" shapes for a retro pixel look.
+ */
+function renderArrowIndicator(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  laneScale: number,
+  pulse: number // 0–1
+): void {
+  const SPRITE_HALF_H = 48 * laneScale; // Approximate half-height of sprite at this scale
+  const BASE_SIZE = 14 * laneScale;
+
+  // Pulse: scale 100→120%, opacity 60→100%
+  const scale = 1.0 + pulse * 0.2;
+  const opacity = 0.6 + pulse * 0.4;
+
+  // Bob offset: gentle up/down bounce using pulse
+  const bob = Math.sin(pulse * Math.PI) * 3 * laneScale;
+
+  const arrowX = x;
+  const arrowY = y - SPRITE_HALF_H - 8 * laneScale + bob;
+  const s = BASE_SIZE * scale;
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.globalAlpha = opacity;
+
+  // Draw two stacked downward V chevrons for a pixelated look
+  const drawChevron = (cx: number, cy: number, size: number) => {
+    ctx.fillStyle = '#FFD700';
+    // Left arm
+    ctx.fillRect(Math.round(cx - size), Math.round(cy - size * 0.6), Math.round(size * 0.35), Math.round(size * 0.35));
+    ctx.fillRect(Math.round(cx - size * 0.7), Math.round(cy - size * 0.25), Math.round(size * 0.35), Math.round(size * 0.35));
+    ctx.fillRect(Math.round(cx - size * 0.4), Math.round(cy + size * 0.1), Math.round(size * 0.35), Math.round(size * 0.35));
+    // Right arm (mirrored)
+    ctx.fillRect(Math.round(cx + size * 0.65), Math.round(cy - size * 0.6), Math.round(size * 0.35), Math.round(size * 0.35));
+    ctx.fillRect(Math.round(cx + size * 0.35), Math.round(cy - size * 0.25), Math.round(size * 0.35), Math.round(size * 0.35));
+    ctx.fillRect(Math.round(cx + size * 0.05), Math.round(cy + size * 0.1), Math.round(size * 0.35), Math.round(size * 0.35));
+  };
+
+  // Two chevrons stacked (upper slightly smaller)
+  drawChevron(arrowX, arrowY - s * 0.55, s * 0.65);
+  drawChevron(arrowX, arrowY, s);
+
+  ctx.restore();
 }
 
 /**

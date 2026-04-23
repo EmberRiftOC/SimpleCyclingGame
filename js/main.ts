@@ -6,10 +6,10 @@ import type { GameConfig } from '../types';
 import { loadConfigs, applyDifficulty, DIFFICULTY_PRESETS, type Difficulty } from './config.js';
 import { RaceManager } from './race-manager.js';
 import * as renderer from './renderer.js';
-import { setPlayerFlashVisible, setCameraPosition } from './renderer.js';
+import { setPlayerFlashVisible, setCameraPosition, setArrowState } from './renderer.js';
 import * as input from './input.js';
 import { Countdown } from './countdown.js';
-import { PlayerFlash } from './player-flash.js';
+import { ArrowIndicator } from './arrow-indicator.js';
 import { CameraController } from './camera.js';
 
 const PHYSICS_STEP = 1000 / 60; // 60 physics updates per second
@@ -33,8 +33,8 @@ let raceStartTime = 0;
 const countdown = new Countdown();
 let countdownOverlay: HTMLDivElement | null = null;
 
-// Player flash (identifies player sprite at race start)
-const playerFlash = new PlayerFlash();
+// Arrow indicator (identifies player sprite at race start)
+const arrowIndicator = new ArrowIndicator();
 
 // Camera controller (handles crash-pan smoothing)
 const camera = new CameraController();
@@ -231,8 +231,8 @@ function startRace(): void {
   raceStartTime = performance.now();
   gameRunning = true;
 
-  // Trigger 3-flash identification effect so player knows their sprite
-  playerFlash.start();
+  // Show pulsing arrow above player for first 3 seconds
+  arrowIndicator.start();
 
   // Reset camera to player's starting position
   if (raceManager) {
@@ -330,9 +330,11 @@ function gameLoop(currentTime: number): void {
     };
   }
 
-  // Tick player flash and push visibility to renderer
-  playerFlash.update(deltaTime);
-  setPlayerFlashVisible(playerFlash.isVisible);
+  // Tick arrow indicator and push state to renderer
+  arrowIndicator.update(deltaTime);
+  setArrowState({ visible: arrowIndicator.visible, pulse: arrowIndicator.getPulse() });
+  // Player sprite always fully visible (no flash)
+  setPlayerFlashVisible(true);
 
   // Camera: detect crash edge and tick
   const player = gameState.riders.find(r => r.type === 'player');
@@ -434,7 +436,8 @@ function handleRaceEnd(raceTimeMs: number): void {
     gameRunning = false;
     raceManager = null;
     countdown.reset();
-    playerFlash.reset();
+    arrowIndicator.reset();
+    setArrowState({ visible: false, pulse: 0 });
     setPlayerFlashVisible(true);
     camera.reset();
     setCameraPosition(null);
