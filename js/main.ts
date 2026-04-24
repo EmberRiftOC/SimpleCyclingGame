@@ -292,10 +292,12 @@ function gameLoop(currentTime: number): void {
     (window as any).debugTriggerCrash = (knockbackMetres: number = 4) => {
       if (!player || player.finished) return;
       player.position = Math.max(0, player.position - knockbackMetres);
+      // Apply same speed reduction as a real crash
+      player.speed = player.speed * (rm.config.drafting.crashSpeedReduction ?? 0.5);
       player.crashed = true;
       camera.onPlayerCrash(player.position);
       setTimeout(() => { player.crashed = false; }, 1000);
-      console.debug('[debug] crash triggered — player at', player.position);
+      console.debug('[debug] crash triggered — player at', player.position, 'speed now', player.speed);
     };
 
     (window as any).gameDebug = {

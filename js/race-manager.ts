@@ -280,8 +280,9 @@ export class RaceManager {
           // Determine rear rider
           const rearRider = riderA.position < riderB.position ? riderA : riderB;
 
-          // Apply knockback
+          // Apply knockback and speed reduction
           rearRider.position = physics.applyCollisionKnockback(rearRider, this.config);
+          rearRider.speed = physics.applyCrashSpeedReduction(rearRider, this.config);
           rearRider.crashed = true;
 
           // Reset crash flag after a moment

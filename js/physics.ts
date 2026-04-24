@@ -80,6 +80,16 @@ export function applyCollisionKnockback(rider: Rider, config: GameConfig): numbe
 }
 
 /**
+ * Apply crash speed reduction to the rear rider.
+ * Reduces speed to crashSpeedReduction fraction of current speed.
+ * @returns The new speed after reduction
+ */
+export function applyCrashSpeedReduction(rider: Rider, config: GameConfig): number {
+  const { crashSpeedReduction } = config.drafting;
+  return rider.speed * crashSpeedReduction;
+}
+
+/**
  * Find the closest rider ahead in the same lane
  */
 export function findDraftTarget(rider: Rider, riders: Rider[]): Rider | null {

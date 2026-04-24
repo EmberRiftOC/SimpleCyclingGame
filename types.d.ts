@@ -126,6 +126,8 @@ export interface DraftingConfig {
     max: number;
     unit: string;
   };
+  /** Speed multiplier applied to the rear rider on crash (e.g. 0.5 = 50% speed) */
+  crashSpeedReduction: number;
 }
 
 export interface AIBehavior {

@@ -104,7 +104,8 @@ const draftingConfig: DraftingConfig = {
     "min": 4,
     "max": 5,
     "unit": "bikeLengths"
-  }
+  },
+  "crashSpeedReduction": 0.5
 };
 
 const aiConfig: AIConfig = {
