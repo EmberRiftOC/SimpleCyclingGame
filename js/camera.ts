@@ -14,8 +14,8 @@
  * A second crash during CRASH_PAN re-starts the ease-out toward the new target.
  */
 
-const DELAY_MS = 300;           // Freeze duration after crash (ms)
-const PAN_DURATION_MS = 1000;   // Target pan duration (ms)
+const DELAY_MS = 600;           // Freeze duration after crash (ms)
+const PAN_DURATION_MS = 2000;   // Target pan duration (ms)
 const CATCH_THRESHOLD = 0.5;    // Metres — close enough to snap and return to NORMAL
 
 const enum State {
@@ -114,10 +114,10 @@ export class CameraController {
       return;
     }
 
-    // Quadratic ease-out: velocity starts at peak and slows as t → 1
+    // Ease-in-out: velocity ramps up in first half, ramps down in second half.
     // t goes 0→1 over PAN_DURATION_MS.  We clamp so we never overshoot.
     const t = Math.min(1, this.panElapsed / PAN_DURATION_MS);
-    const velocityFactor = 1 - t;          // 1 at start, 0 at end
+    const velocityFactor = t < 0.5 ? 2 * t : 2 * (1 - t); // triangle: 0→1→0
     const remainingDist = Math.abs(distance);
 
     // Peak velocity: cover panStartDistance in PAN_DURATION_MS at constant speed.

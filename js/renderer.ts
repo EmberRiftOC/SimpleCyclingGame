@@ -40,6 +40,18 @@ export function setCameraPosition(pos: number | null): void {
   cameraPosition = pos;
 }
 
+/**
+ * Camera effective scroll speed (m/s).
+ * When set, drives background scroll at camera velocity instead of player velocity.
+ * Ensures all layers (background, road, riders) pan together during crash.
+ * Set to null to revert to player-speed-based scrolling (e.g. during countdown).
+ */
+let cameraScrollSpeed: number | null = null;
+
+export function setCameraScrollSpeed(speed: number | null): void {
+  cameraScrollSpeed = speed;
+}
+
 /** Arrow indicator state pushed from main each frame */
 interface ArrowState {
   visible: boolean;
@@ -115,10 +127,13 @@ function renderBackground(gameState: GameState, _config: RenderConfig): void {
 
   const player = gameState.riders.find(r => r.type === 'player');
 
-  // Sync scroll speed to player velocity (pixels/frame at 60fps)
+  // Sync scroll speed to camera effective velocity (m/s), not raw player speed.
+  // During crash pan the camera moves at a different rate than the player, so
+  // using camera velocity keeps the background and road in sync with rider layer.
   const normalSpeed = 11.176; // m/s baseline
   const playerSpeed = player ? player.speed : normalSpeed;
-  neonCity.speed = (playerSpeed / normalSpeed) * 3; // scale to feel right
+  const effectiveSpeed = cameraScrollSpeed !== null ? cameraScrollSpeed : playerSpeed;
+  neonCity.speed = (effectiveSpeed / normalSpeed) * 3; // scale to feel right
 
   // Update and render the neon city at its native resolution
   neonCity.update(1 / 60);

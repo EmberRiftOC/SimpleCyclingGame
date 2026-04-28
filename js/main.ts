@@ -6,7 +6,7 @@ import type { GameConfig } from '../types';
 import { loadConfigs, applyDifficulty, DIFFICULTY_PRESETS, type Difficulty } from './config.js';
 import { RaceManager } from './race-manager.js';
 import * as renderer from './renderer.js';
-import { setPlayerFlashVisible, setCameraPosition, setArrowState } from './renderer.js';
+import { setPlayerFlashVisible, setCameraPosition, setCameraScrollSpeed, setArrowState } from './renderer.js';
 import * as input from './input.js';
 import { Countdown } from './countdown.js';
 import { ArrowIndicator } from './arrow-indicator.js';
@@ -175,6 +175,7 @@ function beginCountdown(): void {
   input.resetInputState();
   // Ensure camera isn't influencing renderer during countdown
   setCameraPosition(null);
+  setCameraScrollSpeed(null);
 
   // Kick off countdown loop
   countdown.start();
@@ -347,8 +348,14 @@ function gameLoop(currentTime: number): void {
       camera.onPlayerCrash(player.position);
     }
     prevPlayerCrashed = player.crashed;
+    const prevCameraPos = camera.position;
     camera.update(deltaTime, player.position);
     setCameraPosition(camera.position);
+    // Compute camera velocity (m/s) and drive all background layers at same rate.
+    // This keeps city skyline and road in sync with rider layer during crash pan.
+    const cameraDeltaMetres = camera.position - prevCameraPos;
+    const cameraSpeedMs = deltaTime > 0 ? (cameraDeltaMetres / deltaTime) * 1000 : player.speed;
+    setCameraScrollSpeed(cameraSpeedMs);
   }
 
   const renderConfigs = {
@@ -444,6 +451,7 @@ function handleRaceEnd(raceTimeMs: number): void {
     setPlayerFlashVisible(true);
     camera.reset();
     setCameraPosition(null);
+    setCameraScrollSpeed(null);
     prevPlayerCrashed = false;
     beginCountdown();
   });
