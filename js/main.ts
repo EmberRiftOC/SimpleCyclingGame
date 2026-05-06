@@ -11,6 +11,7 @@ import * as input from './input.js';
 import { Countdown } from './countdown.js';
 import { ArrowIndicator } from './arrow-indicator.js';
 import { CameraController } from './camera.js';
+import { installDebugApi } from './debug-api.js';
 
 const PHYSICS_STEP = 1000 / 60; // 60 physics updates per second
 const ASPECT_RATIO = 2; // width:height = 2:1
@@ -283,55 +284,7 @@ function gameLoop(currentTime: number): void {
   // Expose debug state (only when debug token is present in URL)
   if (DEBUG_ENABLED) {
     const player = gameState.riders.find(r => r.type === 'player');
-
-    /**
-     * window.debugTriggerCrash(knockbackMetres = 4)
-     * Instantly knock the player back, simulating a collision.
-     * Triggers the crash-camera pan so it can be observed/tested.
-     * NOTE: knockback only (penalty), no position advantage possible.
-     */
-    (window as any).debugTriggerCrash = (knockbackMetres: number = 4) => {
-      if (!player || player.finished) return;
-      player.position = Math.max(0, player.position - knockbackMetres);
-      // Apply same speed reduction as a real crash
-      player.speed = player.speed * (rm.config.drafting.crashSpeedReduction ?? 0.5);
-      player.crashed = true;
-      camera.onPlayerCrash(player.position);
-      setTimeout(() => { player.crashed = false; }, 1000);
-      console.debug('[debug] crash triggered — player at', player.position, 'speed now', player.speed);
-    };
-
-    (window as any).gameDebug = {
-      player: player ? {
-        lane: player.lane,
-        x: player.position,
-        energy: player.energy,
-        speed: player.speed,
-        isDrafting: player.isDrafting ?? false,
-        drainRate: player.energyDrainRate,
-      } : null,
-      riders: gameState.riders.map(r => ({
-        id: r.id,
-        lane: r.lane,
-        x: r.position,
-        energy: r.energy,           // absolute value (player: 0-100, AI: 0-150)
-        maxEnergy: r.maxEnergy,     // ceiling for this rider
-        isPlayer: r.type === 'player',
-        personality: r.type,        // 'player' | 'aggressive' | 'balanced' | 'defensive'
-      })),
-      race: {
-        distanceCovered: player?.position ?? 0,
-        distanceRemaining: gameState.race.totalDistance - (player?.position ?? 0),
-        totalDistance: gameState.race.totalDistance,
-        elapsedTime: gameState.time / 1000,
-        started: raceStarted,
-        finished: gameState.race.finished,
-        primes: gameState.race.primes.map(p => ({
-          position: p.location,
-          crossed: p.claimed,
-        })),
-      },
-    };
+    installDebugApi({ player, config: rm.config, gameState, camera, raceStarted });
   }
 
   // Tick arrow indicator off the authoritative game clock
