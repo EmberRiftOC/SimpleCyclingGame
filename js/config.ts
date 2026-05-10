@@ -99,7 +99,7 @@ const draftingConfig: DraftingConfig = {
     }
   ],
   "bikeLengthInMeters": 1.8,
-  "collisionThreshold": 0.3,
+  "collisionThreshold": 1.0,
   "collisionKnockback": {
     "min": 4,
     "max": 5,

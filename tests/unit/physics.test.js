@@ -126,43 +126,50 @@ describe('Physics - Drafting', () => {
 });
 
 describe('Physics - Collision Detection', () => {
-  test('detects collision when riders are very close', () => {
+  const wheelOverlapConfig = {
+    drafting: {
+      collisionThreshold: 1.0, // 1 bike length = wheel-edge contact
+      bikeLengthInMeters: 1.8
+    }
+  };
+
+  test('detects collision when riders overlap (centers very close)', () => {
     const riderA = { position: 100, lane: 2 };
     const riderB = { position: 100.2, lane: 2 };
-    const config = {
-      drafting: {
-        collisionThreshold: 0.3,
-        bikeLengthInMeters: 1.8
-      }
-    };
-    
-    expect(checkCollision(riderA, riderB, config)).toBe(true);
+    expect(checkCollision(riderA, riderB, wheelOverlapConfig)).toBe(true);
+  });
+
+  test('detects collision at exactly 1 bike length (wheel edge contact)', () => {
+    // Rear rider at 100, front rider at 101.79 — just within 1 bike length (1.8m)
+    const rearRider = { position: 100, lane: 2 };
+    const frontRider = { position: 101.79, lane: 2 };
+    expect(checkCollision(rearRider, frontRider, wheelOverlapConfig)).toBe(true);
+  });
+
+  test('no collision when riders are exactly 1 bike length apart (no overlap)', () => {
+    // Rear rider at 100, front rider at 101.8 — wheel edges just touching, not overlapping
+    const rearRider = { position: 100, lane: 2 };
+    const frontRider = { position: 101.8, lane: 2 };
+    expect(checkCollision(rearRider, frontRider, wheelOverlapConfig)).toBe(false);
+  });
+
+  test('no collision when riders have clear gap between them', () => {
+    const riderA = { position: 100, lane: 2 };
+    const riderB = { position: 103, lane: 2 };
+    expect(checkCollision(riderA, riderB, wheelOverlapConfig)).toBe(false);
   });
 
   test('no collision when riders are in different lanes', () => {
     const riderA = { position: 100, lane: 2 };
     const riderB = { position: 100.2, lane: 3 };
-    const config = {
-      drafting: {
-        collisionThreshold: 0.3,
-        bikeLengthInMeters: 1.8
-      }
-    };
-    
-    expect(checkCollision(riderA, riderB, config)).toBe(false);
+    expect(checkCollision(riderA, riderB, wheelOverlapConfig)).toBe(false);
   });
 
-  test('no collision when riders are far apart', () => {
-    const riderA = { position: 100, lane: 2 };
-    const riderB = { position: 102, lane: 2 };
-    const config = {
-      drafting: {
-        collisionThreshold: 0.3,
-        bikeLengthInMeters: 1.8
-      }
-    };
-    
-    expect(checkCollision(riderA, riderB, config)).toBe(false);
+  test('no collision when adjacent lane riders are close but separate', () => {
+    // Same position but different lanes — should never collide
+    const riderA = { position: 100, lane: 1 };
+    const riderB = { position: 100, lane: 2 };
+    expect(checkCollision(riderA, riderB, wheelOverlapConfig)).toBe(false);
   });
 });
 
