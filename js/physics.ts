@@ -55,15 +55,28 @@ export function calculateDraftMultiplier(distance: number, config: GameConfig): 
 }
 
 /**
- * Check if two riders are colliding
+ * Check if two riders are colliding using sprite-accurate bounding boxes.
+ *
+ * Each rider's collision extent is defined by `cyclistBBox` in the drafting
+ * config — the world-space metres from the rider's position to the front and
+ * rear wheel edges (bow shock excluded).
+ *
+ * Two riders collide when the front bbox edge of the rear rider overlaps the
+ * rear bbox edge of the front rider, i.e. when the gap between their bounding
+ * boxes reaches zero.
+ *
+ *   rearRider.position + cyclistBBox.front  >=  frontRider.position - cyclistBBox.rear
+ *   ⟺ (frontRider.position - rearRider.position) < (bbox.front + bbox.rear)
  */
 export function checkCollision(riderA: Rider, riderB: Rider, config: GameConfig): boolean {
   if (riderA.lane !== riderB.lane) return false;
-  
+
   const distance = Math.abs(riderA.position - riderB.position);
-  const { collisionThreshold, bikeLengthInMeters } = config.drafting;
-  const collisionDistance = collisionThreshold * bikeLengthInMeters;
-  
+  const { cyclistBBox } = config.drafting;
+
+  // Collision distance = sum of the two half-extents that face each other
+  const collisionDistance = cyclistBBox.front + cyclistBBox.rear;
+
   return distance < collisionDistance;
 }
 

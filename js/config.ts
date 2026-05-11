@@ -3,6 +3,7 @@
  */
 
 import type { AIConfig, DraftingConfig, EnergyConfig, GameConfig, PrimeConfig, RaceConfig } from '../types';
+import { CYCLIST_BBOX_HALF_PX, SPRITE_W } from './sprites.js';
 
 const raceConfig: RaceConfig = {
   "distance": {
@@ -99,7 +100,13 @@ const draftingConfig: DraftingConfig = {
     }
   ],
   "bikeLengthInMeters": 1.8,
-  "collisionThreshold": 1.0,
+  // Bounding box: derived from sprite pixel geometry scaled to world metres.
+  // SPRITE_W (48px) represents one bike length (1.8 m).
+  // rear  = 16/24 * 0.9m = 0.600 m  |  front = 17/24 * 0.9m = 0.638 m
+  "cyclistBBox": {
+    rear:  (CYCLIST_BBOX_HALF_PX.rear  / (SPRITE_W / 2)) * (1.8 / 2),
+    front: (CYCLIST_BBOX_HALF_PX.front / (SPRITE_W / 2)) * (1.8 / 2),
+  },
   "collisionKnockback": {
     "min": 4,
     "max": 5,

@@ -117,10 +117,21 @@ export interface DraftZone {
   description?: string;
 }
 
+/**
+ * World-space distances (metres) from the rider's position reference point to
+ * each edge of the cyclist bounding box, derived from sprite geometry.
+ * Rear = distance behind the rider origin; front = distance ahead.
+ */
+export interface CyclistBBox {
+  rear:  number; // metres behind rider position
+  front: number; // metres ahead of rider position
+}
+
 export interface DraftingConfig {
   draftZones: DraftZone[];
   bikeLengthInMeters: number;
-  collisionThreshold: number;
+  /** Bounding box of the cyclist sprite in world-space metres (excludes bow shock). */
+  cyclistBBox: CyclistBBox;
   collisionKnockback: {
     min: number;
     max: number;

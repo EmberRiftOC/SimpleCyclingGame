@@ -3,8 +3,34 @@
  * Ported from cycling_sprites.html
  */
 
-const SPRITE_W = 48;
-const SPRITE_H = 48;
+export const SPRITE_W = 48;
+export const SPRITE_H = 48;
+
+/**
+ * Cyclist body bounding box in sprite pixel coordinates (48×48 sprite space).
+ * Covers the physical extent of the bike including both wheel radii.
+ * Intentionally excludes the bow shock overlay (drawBowShock), which is a
+ * visual drafting effect drawn separately and must not inflate the collision box.
+ *
+ * Geometry reference:
+ *   rearWheelX=14, frontWheelX=35, wheelR=6, SPRITE_W=48
+ *   Rear outer edge : rearWheelX  - wheelR = 8
+ *   Front outer edge: frontWheelX + wheelR = 41
+ *   Sprite centre X : SPRITE_W / 2 = 24
+ *
+ * Used by physics.ts to compute the world-space collision distance.
+ */
+export const CYCLIST_BBOX_PX = {
+  left:    8,  // rear wheel outer edge
+  right:   41, // front wheel outer edge (bow shock is beyond this)
+  centerX: 24, // sprite horizontal centre
+} as const;
+
+/** Half-widths from sprite centre — rear and front separately. */
+export const CYCLIST_BBOX_HALF_PX = {
+  rear:  CYCLIST_BBOX_PX.centerX - CYCLIST_BBOX_PX.left,  // 16 px
+  front: CYCLIST_BBOX_PX.right   - CYCLIST_BBOX_PX.centerX, // 17 px
+} as const;
 
 // Shared color constants (bike/skin/structural)
 const C = {

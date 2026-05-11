@@ -126,50 +126,59 @@ describe('Physics - Drafting', () => {
 });
 
 describe('Physics - Collision Detection', () => {
-  const wheelOverlapConfig = {
+  // Bounding-box collision config matching sprites.ts geometry:
+  //   SPRITE_W=48, bikeLengthInMeters=1.8
+  //   rear  = (16/24) * (1.8/2) = 0.600 m
+  //   front = (17/24) * (1.8/2) = 0.6375 m
+  //   collisionDistance = 0.600 + 0.6375 = 1.2375 m
+  const BBOX_REAR  = (16 / 24) * (1.8 / 2);   // 0.600
+  const BBOX_FRONT = (17 / 24) * (1.8 / 2);   // 0.6375
+  const COLLISION_DIST = BBOX_FRONT + BBOX_REAR; // 1.2375
+
+  const bboxConfig = {
     drafting: {
-      collisionThreshold: 1.0, // 1 bike length = wheel-edge contact
+      cyclistBBox: { rear: BBOX_REAR, front: BBOX_FRONT },
       bikeLengthInMeters: 1.8
     }
   };
 
-  test('detects collision when riders overlap (centers very close)', () => {
+  test('detects collision when bounding boxes clearly overlap (centres very close)', () => {
     const riderA = { position: 100, lane: 2 };
     const riderB = { position: 100.2, lane: 2 };
-    expect(checkCollision(riderA, riderB, wheelOverlapConfig)).toBe(true);
+    expect(checkCollision(riderA, riderB, bboxConfig)).toBe(true);
   });
 
-  test('detects collision at exactly 1 bike length (wheel edge contact)', () => {
-    // Rear rider at 100, front rider at 101.79 — just within 1 bike length (1.8m)
-    const rearRider = { position: 100, lane: 2 };
-    const frontRider = { position: 101.79, lane: 2 };
-    expect(checkCollision(rearRider, frontRider, wheelOverlapConfig)).toBe(true);
+  test('detects collision when bounding box edges just overlap', () => {
+    // distance = COLLISION_DIST - 0.01 → bbox edges have 0.01 m overlap → crash
+    const rearRider  = { position: 100, lane: 2 };
+    const frontRider = { position: 100 + COLLISION_DIST - 0.01, lane: 2 };
+    expect(checkCollision(rearRider, frontRider, bboxConfig)).toBe(true);
   });
 
-  test('no collision when riders are exactly 1 bike length apart (no overlap)', () => {
-    // Rear rider at 100, front rider at 101.8 — wheel edges just touching, not overlapping
-    const rearRider = { position: 100, lane: 2 };
-    const frontRider = { position: 101.8, lane: 2 };
-    expect(checkCollision(rearRider, frontRider, wheelOverlapConfig)).toBe(false);
+  test('no collision when bounding box edges exactly touch (no overlap)', () => {
+    // distance = COLLISION_DIST exactly → edges kiss but do not overlap → no crash
+    const rearRider  = { position: 100, lane: 2 };
+    const frontRider = { position: 100 + COLLISION_DIST, lane: 2 };
+    expect(checkCollision(rearRider, frontRider, bboxConfig)).toBe(false);
   });
 
-  test('no collision when riders have clear gap between them', () => {
+  test('no collision when there is a clear gap between bounding boxes', () => {
     const riderA = { position: 100, lane: 2 };
     const riderB = { position: 103, lane: 2 };
-    expect(checkCollision(riderA, riderB, wheelOverlapConfig)).toBe(false);
+    expect(checkCollision(riderA, riderB, bboxConfig)).toBe(false);
   });
 
   test('no collision when riders are in different lanes', () => {
     const riderA = { position: 100, lane: 2 };
     const riderB = { position: 100.2, lane: 3 };
-    expect(checkCollision(riderA, riderB, wheelOverlapConfig)).toBe(false);
+    expect(checkCollision(riderA, riderB, bboxConfig)).toBe(false);
   });
 
-  test('no collision when adjacent lane riders are close but separate', () => {
+  test('no collision when adjacent-lane riders are at the same position', () => {
     // Same position but different lanes — should never collide
     const riderA = { position: 100, lane: 1 };
     const riderB = { position: 100, lane: 2 };
-    expect(checkCollision(riderA, riderB, wheelOverlapConfig)).toBe(false);
+    expect(checkCollision(riderA, riderB, bboxConfig)).toBe(false);
   });
 });
 
