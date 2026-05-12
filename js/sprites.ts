@@ -371,7 +371,7 @@ export function drawCyclist(
   // Skip draw when flash effect hides the player
   if (isPlayer && !flashVisible) return;
 
-  const RENDER_SCALE = 2 * laneScale; // Scale by lane for perspective effect
+  const RENDER_SCALE = laneScale; // laneScale already includes baseRenderScale from renderer
   const shade = darkenColor(color, 40);
   const frames = getFrames(color, shade);
   const frame = frames[Math.abs(animFrame) % 6];
@@ -406,7 +406,7 @@ export function drawBowShock(
   overlayFrame: number,
   laneScale: number = 1.0
 ): void {
-  const RENDER_SCALE = 2 * laneScale;
+  const RENDER_SCALE = laneScale; // laneScale already includes baseRenderScale from renderer
   const offscreen = document.createElement('canvas');
   offscreen.width = SPRITE_W;
   offscreen.height = SPRITE_H;

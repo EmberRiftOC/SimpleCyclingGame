@@ -3,7 +3,7 @@
  */
 
 import type { GameConfig, GameState, Rider } from '../types';
-import { drawCyclist, getAnimationFrame, drawBowShock, getBowShockFrame } from './sprites.js';
+import { drawCyclist, getAnimationFrame, drawBowShock, getBowShockFrame, SPRITE_W, SPRITE_H } from './sprites.js';
 import { NeonCityBackground } from './NeonCityBackground.js';
 
 interface CanvasLayer {
@@ -163,6 +163,12 @@ function renderRiders(gameState: GameState, config: RenderConfig): void {
   const viewportRange = config.race.viewport.rangeBikeLengths * bikeLengthMeters;
   const playerViewportCenter = canvas.width * config.race.viewport.playerPositionPercent;
 
+  // Base render scale: maps SPRITE_W pixels to exactly one bike-length in canvas space.
+  // This keeps physics collision boxes pixel-perfect with the drawn wheels.
+  // (Previously hardcoded to 2, which made the sprite ~20% wider than the physics bbox.)
+  const canvasPxPerMeter = canvas.width / viewportRange;
+  const baseRenderScale = (bikeLengthMeters * canvasPxPerMeter) / SPRITE_W;
+
   // Use controlled camera position when set (crash pan), otherwise track player directly
   const trackPos = cameraPosition !== null ? cameraPosition : player.position;
 
@@ -243,8 +249,9 @@ function renderRiders(gameState: GameState, config: RenderConfig): void {
     // Position within NeonCity road (lane 1 = top of road, lane 5 = bottom)
     const y = neonRoadTop + (visualLane - 0.5) * laneHeight;
 
-    // Perspective scale based on lane (lane 1 = small/far, lane 5 = large/close)
-    const laneScale = minScale + ((visualLane - 1) / (laneCount - 1)) * (maxScale - minScale);
+    // Perspective scale based on lane (lane 1 = small/far, lane 5 = large/close).
+    // Combined with baseRenderScale so sprite width = bikeLengthMeters in world space.
+    const laneScale = (minScale + ((visualLane - 1) / (laneCount - 1)) * (maxScale - minScale)) * baseRenderScale;
 
     // Freeze animation when rider has finished (coasting/stopped pose)
     const animFrame = rider.finished
@@ -311,7 +318,7 @@ function renderArrowIndicator(
   laneScale: number,
   pulse: number // 0–1
 ): void {
-  const SPRITE_HALF_H = 48 * laneScale; // Approximate half-height of sprite at this scale
+  const SPRITE_HALF_H = (SPRITE_H / 2) * laneScale; // laneScale includes baseRenderScale
   const BASE_SIZE = 14 * laneScale;
 
   // Pulse: scale 100→120%, opacity 60→100%

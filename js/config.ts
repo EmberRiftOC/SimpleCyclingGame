@@ -103,6 +103,10 @@ const draftingConfig: DraftingConfig = {
   // Bounding box: derived from sprite pixel geometry scaled to world metres.
   // SPRITE_W (48px) represents one bike length (1.8 m).
   // rear  = 16/24 * 0.9m = 0.600 m  |  front = 17/24 * 0.9m = 0.638 m
+  //
+  // The renderer derives baseRenderScale = (bikeLengthInMeters * canvasPxPerMeter) / SPRITE_W
+  // so that the sprite is drawn at exactly bikeLengthInMeters in world space, keeping
+  // these physics bbox values pixel-perfect with the drawn wheel edges.
   "cyclistBBox": {
     rear:  (CYCLIST_BBOX_HALF_PX.rear  / (SPRITE_W / 2)) * (1.8 / 2),
     front: (CYCLIST_BBOX_HALF_PX.front / (SPRITE_W / 2)) * (1.8 / 2),
